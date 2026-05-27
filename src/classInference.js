@@ -71,8 +71,10 @@ const CLASS_RULES = [
   {
     className: 'Wizard',
     abilities: [
+      'Blast of Cold',
       'Blaze',
       'Evoke Embers',
+      'Jolt',
       'Sparking Bolt',
       'Static Storm'
     ]

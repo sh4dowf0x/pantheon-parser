@@ -99,6 +99,10 @@ assert.deepEqual(
   'Wizard'
 );
 assert.deepEqual(
+  inferClassFromAbilities(['Blast of Cold II', 'Jolt']).className,
+  'Wizard'
+);
+assert.deepEqual(
   inferClassFromAbilities(['Howling Arrow II', 'Swift Shot']).className,
   'Ranger'
 );
