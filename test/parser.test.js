@@ -107,6 +107,10 @@ assert.deepEqual(
   'Warrior'
 );
 assert.deepEqual(
+  inferClassFromAbilities(['Divine Shock II', 'Zealous Strike', 'Faithful Strike']).className,
+  'Paladin'
+);
+assert.deepEqual(
   inferClassFromAbilities(['Auto Attack']).className,
   'Unknown'
 );

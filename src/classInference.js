@@ -24,6 +24,14 @@ const CLASS_RULES = [
     ]
   },
   {
+    className: 'Paladin',
+    abilities: [
+      'Divine Shock',
+      'Faithful Strike',
+      'Zealous Strike'
+    ]
+  },
+  {
     className: 'Dire Lord',
     abilities: [
       'Bleeding Essence',
