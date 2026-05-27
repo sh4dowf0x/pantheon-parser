@@ -1,0 +1,24 @@
+{
+  "name": "pantheonparser",
+  "version": "1.0.0",
+  "description": "Experimental OCR-based combat parser for Pantheon.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node --no-warnings src/index.js",
+    "dashboard": "node --no-warnings src/dashboard.js",
+    "once": "node --no-warnings src/index.js --once --debug",
+    "debug:capture": "node --no-warnings src/index.js --once --debug --dry-run",
+    "calibrate": "node --no-warnings src/calibrate.js",
+    "watch:debug": "node --no-warnings src/index.js --debug",
+    "test": "node --no-warnings test/parser.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "screenshot-desktop": "^1.15.4",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^7.0.0"
+  }
+}

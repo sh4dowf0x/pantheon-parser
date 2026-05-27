@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pantheon DPS</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>Pantheon Combat</h1>
+          <p id="status">Connecting...</p>
+        </div>
+        <div class="controls" aria-label="Metric">
+          <button class="metric-button active" type="button" data-metric="damage">Damage</button>
+          <button class="metric-button" type="button" data-metric="healing">Healing</button>
+        </div>
+        <div class="controls" aria-label="Time range">
+          <button class="range-button active" type="button" data-window="60">1m</button>
+          <button class="range-button" type="button" data-window="300">5m</button>
+          <button class="range-button" type="button" data-window="900">15m</button>
+          <button class="range-button" type="button" data-window="0">All</button>
+        </div>
+        <div class="controls" aria-label="Source filter">
+          <button class="source-button active" type="button" data-source-mode="players">Players</button>
+          <button class="source-button" type="button" data-source-mode="all">All</button>
+        </div>
+        <button id="reset-button" class="reset-button" type="button">Reset</button>
+      </header>
+
+      <section class="metrics" aria-label="Combat totals">
+        <div class="metric">
+          <span id="rate-label">Total DPS</span>
+          <strong id="total-rate">0.00</strong>
+        </div>
+        <div class="metric">
+          <span id="total-label">Damage</span>
+          <strong id="total-amount">0</strong>
+        </div>
+        <div class="metric">
+          <span>Duration</span>
+          <strong id="duration">0s</strong>
+        </div>
+        <div class="metric">
+          <span>Events</span>
+          <strong id="events">0</strong>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="panel main-panel">
+          <div class="panel-head">
+            <h2 id="table-title">Damage Done</h2>
+            <span id="combatant-count">0 sources</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <colgroup>
+                <col class="source-col">
+                <col class="class-col">
+                <col class="amount-col">
+                <col class="rate-col">
+                <col class="events-col">
+                <col class="crits-col">
+                <col class="taken-col">
+                <col class="out-mit-col">
+                <col class="in-mit-col">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Class</th>
+                  <th id="amount-heading" class="number">Damage</th>
+                  <th id="rate-heading" class="number">DPS</th>
+                  <th id="events-heading" class="number">Hits</th>
+                  <th class="number">Crits</th>
+                  <th id="taken-heading" class="number">Taken</th>
+                  <th id="out-mit-heading" class="number">Out Mit</th>
+                  <th id="in-mit-heading" class="number">In Mit</th>
+                </tr>
+              </thead>
+              <tbody id="combatants">
+                <tr>
+                  <td colspan="9" class="empty">Waiting for combat data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="panel detail-panel">
+          <div class="panel-head">
+            <h2 id="detail-title">Breakdown</h2>
+            <span id="detail-subtitle">Select a source</span>
+          </div>
+          <div id="breakdown" class="breakdown empty">No source selected.</div>
+        </aside>
+      </section>
+
+      <section class="panel events-panel">
+        <div class="panel-head">
+          <h2>Recent Events</h2>
+          <span id="last-updated">-</span>
+        </div>
+        <div id="events-list" class="events-list"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

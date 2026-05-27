@@ -1,0 +1,71 @@
+{
+  "capture": {
+    "mode": "autoCombatLog",
+    "window": {
+      "processName": "Pantheon",
+      "processId": null,
+      "titleContains": "Pantheon",
+      "useClientArea": true,
+      "useForeground": true
+    },
+    "windowFraction": {
+      "x": 0.72,
+      "y": 0.80,
+      "width": 0.27,
+      "height": 0.18
+    },
+    "fraction": {
+      "x": 0.58,
+      "y": 0.70,
+      "width": 0.40,
+      "height": 0.23
+    },
+    "absolute": {
+      "x": 2220,
+      "y": 1510,
+      "width": 1530,
+      "height": 500
+    },
+    "windowAbsolute": {
+      "x": 1485,
+      "y": 930,
+      "width": 550,
+      "height": 200
+    },
+    "autoCombatLog": {
+      "x": 0.73,
+      "y": 0.82,
+      "width": 0.267,
+      "height": 0.17,
+      "searchX": 0.55,
+      "searchY": 0.55,
+      "searchWidth": 0.45,
+      "searchHeight": 0.45,
+      "minWidth": 0.2,
+      "maxWidth": 0.34,
+      "minHeight": 0.1,
+      "maxHeight": 0.24,
+      "darkCutoff": 55,
+      "padding": 4
+    }
+  },
+  "intervalMs": 750,
+  "statusEveryMs": 10000,
+  "dedupe": {
+    "ttlMs": 3600000,
+    "maxEntries": 5000,
+    "ignoreInitialVisibleLines": true
+  },
+  "databasePath": "data/pantheon-events.sqlite",
+  "debugImagePath": "data/last-capture.png",
+  "debugTextPath": "data/last-ocr.txt",
+  "debug": {
+    "keepCaptureImage": true,
+    "keepTimestampedCaptures": false
+  },
+  "ocr": {
+    "language": "eng",
+    "psm": "6",
+    "threshold": 135
+  }
+}
