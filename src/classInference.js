@@ -50,7 +50,13 @@ const CLASS_RULES = [
   {
     className: 'Warrior',
     abilities: [
+      'Assault',
+      'Bash',
       'Clash Charge',
+      'Commanding Strike',
+      'Quell',
+      'Rupture',
+      'Strike of Breaking',
       'Tidal Shout'
     ]
   },

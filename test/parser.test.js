@@ -103,6 +103,10 @@ assert.deepEqual(
   'Ranger'
 );
 assert.deepEqual(
+  inferClassFromAbilities(['assault', 'Commanding Strike II', 'Strike of Breaking', 'Quell']).className,
+  'Warrior'
+);
+assert.deepEqual(
   inferClassFromAbilities(['Auto Attack']).className,
   'Unknown'
 );
