@@ -33,14 +33,21 @@ function extractLogicalLines(text) {
   const lines = extractLines(text);
   const output = [];
 
-  for (const line of lines) {
-    const previous = output[output.length - 1];
-    const looksLikeContinuation = previous && shouldJoinWrappedLine(previous, line);
+  for (const rawLine of lines) {
+    for (const line of splitTimestampedFragments(rawLine)) {
+      if (!startsWithFullTimestamp(line) && !output.length) continue;
 
-    if (looksLikeContinuation) {
-      output[output.length - 1] = `${previous} ${line}`;
-    } else {
-      output.push(line);
+      if (startsWithFullTimestamp(line)) {
+        output.push(line);
+        continue;
+      }
+
+      const previous = output[output.length - 1];
+      const looksLikeContinuation = previous && shouldJoinWrappedLine(previous, line);
+
+      if (looksLikeContinuation) {
+        output[output.length - 1] = `${previous} ${line}`;
+      }
     }
   }
 
@@ -55,12 +62,28 @@ function shouldJoinWrappedLine(previous, line) {
   return isSuffixContinuation(line) && looksLikeCombatFragment(previous);
 }
 
+function splitTimestampedFragments(line) {
+  const timestampPattern = /\[\d{1,2}:\d{2}:\d{2}\]/g;
+  const matches = [...line.matchAll(timestampPattern)];
+  if (!matches.length) return [line];
+
+  return matches.map((match, index) => {
+    const start = match.index;
+    const end = index + 1 < matches.length ? matches[index + 1].index : line.length;
+    return line.slice(start, end).trim();
+  }).filter(Boolean);
+}
+
 function isCombatEvent(line) {
   return parseCombatLine(line).eventType !== 'unknown';
 }
 
 function startsWithTimestamp(line) {
   return /^\W*\[?\d{1,2}:\d{2}:\d{2}\]?\s+/.test(line);
+}
+
+function startsWithFullTimestamp(line) {
+  return /^\[\d{1,2}:\d{2}:\d{2}\]\s+/.test(line);
 }
 
 function startsNewStandaloneEvent(line) {

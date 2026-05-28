@@ -278,8 +278,8 @@ assert.deepEqual(
 );
 
 assert.deepEqual(
-  extractLogicalLines('Shadowfox dealt 25 Physical damage to jungle goblin thrasher with\nAuto Attack. (8 mitigated)'),
-  ['Shadowfox dealt 25 Physical damage to jungle goblin thrasher with Auto Attack. (8 mitigated)']
+  extractLogicalLines('[17:16:18] Shadowfox dealt 25 Physical damage to jungle goblin thrasher with\nAuto Attack. (8 mitigated)'),
+  ['[17:16:18] Shadowfox dealt 25 Physical damage to jungle goblin thrasher with Auto Attack. (8 mitigated)']
 );
 
 assert.deepEqual(
@@ -298,9 +298,18 @@ assert.deepEqual(
 assert.deepEqual(
   extractLogicalLines('[21:21:48] Shadowfox dealt 38 Physical damage to spine crawler with Serpentine Strike II. (9 mitigated)\nEE. UTTER "RAs. a nh'),
   [
-    '[21:21:48] Shadowfox dealt 38 Physical damage to spine crawler with Serpentine Strike II. (9 mitigated)',
-    'EE. UTTER "RAs. a nh'
+    '[21:21:48] Shadowfox dealt 38 Physical damage to spine crawler with Serpentine Strike II. (9 mitigated)'
   ]
+);
+
+assert.deepEqual(
+  extractLogicalLines('Essence. (2 mitigated)\n[14:22:50] Buster dealt 8 Physical damage to jungle goblin thrasher with Bleeding\nEssence. (2 mitigated)'),
+  ['[14:22:50] Buster dealt 8 Physical damage to jungle goblin thrasher with Bleeding Essence. (2 mitigated)']
+);
+
+assert.deepEqual(
+  extractLogicalLines('#; [14:13:01] Buster dealt 3 Nature damage to jungle goblin scout with Thorncoat.'),
+  ['[14:13:01] Buster dealt 3 Nature damage to jungle goblin scout with Thorncoat.']
 );
 
 assert.deepEqual(
