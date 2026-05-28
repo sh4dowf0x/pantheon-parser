@@ -55,6 +55,12 @@ assert.equal(normalizeAbility('Corrupt Blood'), 'Corrupt Blood I');
 assert.equal(normalizeAbility('Corrupt Blood I'), 'Corrupt Blood I');
 assert.equal(normalizeAbility('Corrupt - Blood I'), 'Corrupt Blood I');
 assert.equal(normalizeAbility(', Fleshcarver'), 'Fleshcarver');
+assert.equal(normalizeAbility('Divine Sal ¥ » Shock'), 'Divine Shock');
+assert.equal(normalizeAbility('Divine Sale NW, J » Shock'), 'Divine Shock');
+assert.equal(normalizeAbility('Divine \\ Shock'), 'Divine Shock');
+assert.equal(normalizeAbility('Zealous -. © e Strike'), 'Zealous Strike');
+assert.equal(normalizeAbility('Zealous \\ Strike'), 'Zealous Strike');
+assert.equal(normalizeAbility('Auto Attack. \\'), 'Auto Attack');
 assert.equal(normalizeAbility('Already Casting. S bw - BE BR we. NEN Ee La THAT'), 'Already Casting');
 assert.equal(normalizeAbility('Already Casting. i as T RL'), 'Already Casting');
 

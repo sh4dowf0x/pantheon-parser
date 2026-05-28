@@ -47,7 +47,11 @@ function normalizeAbility(value) {
     .replace(/\.?\s*\(\d+ mitigated\).*$/i, '')
     .replace(/\s+[!\[\]{}]+$/g, '')
     .replace(/\.\s*$/i, '')
+    .replace(/[\\/>©®™¥¢£§•_+=*~^]+/g, ' ')
     .replace(/[;:|]+/g, ' ')
+    .replace(/\s+[-,.'"`!?]\s+/g, ' ')
+    .replace(/\s+[-,.'"`!?]+$/g, '')
+    .replace(/\.\s*$/i, '')
     .replace(/\bAuto\s+[^A-Za-z0-9\s]{1,3}\s+Attack\b/i, 'Auto Attack')
     .replace(/\bAuto\s+Aftack\b/i, 'Auto Attack')
     .replace(/\b(?:s|i|l)\s+Attack\b/i, 'Attack')
@@ -61,6 +65,8 @@ function normalizeAbility(value) {
     .trim();
 
   if (/^Auto Attack$/i.test(ability)) return 'Auto Attack';
+  if (/^Divine\b.*\bShock$/i.test(ability)) return 'Divine Shock';
+  if (/^Zealous\b.*\bStrike$/i.test(ability)) return 'Zealous Strike';
   if (/^Corrupt\s*[-.]?\s*Blood(?:\s*[Il1])?$/i.test(ability)) return 'Corrupt Blood I';
   return ability;
 }
