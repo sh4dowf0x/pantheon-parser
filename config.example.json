@@ -94,7 +94,7 @@
     "psm": "6",
     "scale": 3,
     "threshold": 135,
-    "invert": true,
+    "invert": false,
     "trimBottomNoise": true,
     "textRowMinBlackRatio": 0.012,
     "textRowBuckets": 32,

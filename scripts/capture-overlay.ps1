@@ -122,7 +122,12 @@ $timer.Add_Tick({
       $state.RegionKey = $regionKey
       $state.Strategy = $strategy
       $state.ObservedAt = [string]$data.observedAt
-      $form.Bounds = New-Object System.Drawing.Rectangle($x, $y, $width, $height)
+      $form.Bounds = New-Object System.Drawing.Rectangle(
+        ($x - $BorderWidth),
+        ($y - $BorderWidth),
+        ($width + $BorderWidth * 2),
+        ($height + $BorderWidth * 2)
+      )
       if (-not $form.Visible) { $form.Show() }
       $form.Invalidate()
     }
