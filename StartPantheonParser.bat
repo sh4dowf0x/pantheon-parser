@@ -12,6 +12,10 @@ echo If one Pantheon window is open, it will be selected automatically.
 echo If multiple are open, you will be prompted to choose the PID.
 echo.
 
+echo Stopping any existing parser or capture overlay processes...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$self = $PID; Get-CimInstance Win32_Process -Filter \"name = 'node.exe'\" | Where-Object { $_.CommandLine -match 'src/index\.js' -or $_.CommandLine -match 'npm-cli\.js.*start' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }; Get-CimInstance Win32_Process -Filter \"name = 'powershell.exe'\" | Where-Object { $_.ProcessId -ne $self -and $_.CommandLine -match 'capture-overlay\.ps1' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"
+echo.
+
 set OVERLAY_PID=
 for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File','%~dp0scripts\capture-overlay.ps1','-RegionPath','%~dp0data\capture-region.json','-ShowLabel') -WindowStyle Hidden -PassThru; $p.Id"`) do set OVERLAY_PID=%%A
 

@@ -34,9 +34,9 @@
     },
     "autoCombatLog": {
       "x": 0.55,
-      "y": 0.75,
+      "y": 0.68,
       "width": 0.45,
-      "height": 0.25,
+      "height": 0.32,
       "searchX": 0.55,
       "searchY": 0.55,
       "searchWidth": 0.45,
