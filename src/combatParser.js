@@ -65,6 +65,15 @@ function normalizeAbility(value) {
     .trim();
 
   if (/^Auto Attack$/i.test(ability)) return 'Auto Attack';
+  if (/^Auto$/i.test(ability)) return 'Auto Attack';
+  if (/^Auto\b.*\bAttack$/i.test(ability)) return 'Auto Attack';
+  if (/^Auto\s+tack$/i.test(ability)) return 'Auto Attack';
+  if (/^Corrupt\b.*\bBlood\b.*$/i.test(ability)) return 'Corrupt Blood I';
+  if (/^Bleeding(?:\b.*\bEssence)?$/i.test(ability)) return 'Bleeding Essence';
+  if (/^Thresh(?:\s+(?:I|1|l|7|Fl))?$/i.test(ability)) return 'Thresh I';
+  if (/^(?:[A-Za-z0-9]{1,3}\s+){1,3}Fleshcarver(?:\s+(?:I|II|Il|ll|1|11|N))*$/i.test(ability)) return 'Fleshcarver II';
+  if (/^Fleshcarver\s+[A-Za-z0-9]{1,3}\s+(?:I|II|Il|ll|1|11)$/i.test(ability)) return 'Fleshcarver II';
+  if (/^Fleshcarver\s+(?:II|Il|ll|11)$/i.test(ability)) return 'Fleshcarver II';
   if (/^Divine\b.*\bShock$/i.test(ability)) return 'Divine Shock';
   if (/^Zealous\b.*\bStrike$/i.test(ability)) return 'Zealous Strike';
   if (/^Corrupt\s*[-.]?\s*Blood(?:\s*[Il1])?$/i.test(ability)) return 'Corrupt Blood I';
