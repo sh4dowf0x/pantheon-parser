@@ -70,6 +70,8 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
 
   const darkCutoff = Number(autoConfig.edgeDarkCutoff ?? autoConfig.darkCutoff ?? 55);
   const minDarkRatio = Number(autoConfig.edgeMinDarkRatio ?? 0.45);
+  const minRowDarkRatio = Number(autoConfig.edgeMinRowDarkRatio ?? minDarkRatio);
+  const minColDarkRatio = Number(autoConfig.edgeMinColDarkRatio ?? minDarkRatio);
   const edgePadding = Number(autoConfig.edgePadding ?? 0);
   const minWidth = Math.max(20, Math.floor(region.width * Number(autoConfig.edgeMinWidth ?? 0.65)));
   const minHeight = Math.max(20, Math.floor(region.height * Number(autoConfig.edgeMinHeight ?? 0.45)));
@@ -104,10 +106,10 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
     }
   }
 
-  const left = findFirstIndex(colDark, height, minDarkRatio);
-  const right = findLastIndex(colDark, height, minDarkRatio);
-  const top = findFirstIndex(rowDark, width, minDarkRatio);
-  const bottom = findLastIndex(rowDark, width, minDarkRatio);
+  const left = findFirstIndex(colDark, height, minColDarkRatio);
+  const right = findLastIndex(colDark, height, minColDarkRatio);
+  const top = findFirstIndex(rowDark, width, minRowDarkRatio);
+  const bottom = findLastIndex(rowDark, width, minRowDarkRatio);
   if (left === -1 || right === -1 || top === -1 || bottom === -1) {
     return { region, refined: false, reason: 'no dark bounds found' };
   }
@@ -552,13 +554,73 @@ async function captureRegion(config, options = {}) {
     .negate()
     .png()
     .toBuffer();
+  const ocrImage = await trimBottomNoise(processed, ocrConfig);
 
   if (options.debugImagePath) {
     fs.mkdirSync(path.dirname(options.debugImagePath), { recursive: true });
-    fs.writeFileSync(options.debugImagePath, processed);
+    fs.writeFileSync(options.debugImagePath, ocrImage);
   }
 
-  return { image: processed, screen: metadata, region, window: windowRect, detection };
+  return { image: ocrImage, screen: metadata, region, window: windowRect, detection };
+}
+
+async function trimBottomNoise(imageBuffer, ocrConfig = {}) {
+  if (ocrConfig.trimBottomNoise === false) return imageBuffer;
+
+  const sample = await sharp(imageBuffer)
+    .grayscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const width = sample.info.width;
+  const height = sample.info.height;
+  const channels = sample.info.channels;
+  const minRowBlack = Math.max(4, Math.floor(width * Number(ocrConfig.textRowMinBlackRatio ?? 0.012)));
+  const bucketCount = Number(ocrConfig.textRowBuckets ?? 32);
+  const minBuckets = Number(ocrConfig.textRowMinBuckets ?? 6);
+  const minRunHeight = Number(ocrConfig.textMinRunHeight ?? 8);
+  const bottomPadding = Number(ocrConfig.textBottomPadding ?? 12);
+  const rowHasText = new Array(height).fill(false);
+
+  for (let y = 0; y < height; y++) {
+    let black = 0;
+    const buckets = new Uint8Array(bucketCount);
+    for (let x = 0; x < width; x++) {
+      const value = sample.data[(y * width + x) * channels];
+      if (value < 128) {
+        black++;
+        buckets[Math.min(bucketCount - 1, Math.floor((x / width) * bucketCount))] = 1;
+      }
+    }
+    let occupiedBuckets = 0;
+    for (const bucket of buckets) occupiedBuckets += bucket;
+    rowHasText[y] = black >= minRowBlack && occupiedBuckets >= minBuckets;
+  }
+
+  let lastTextRow = -1;
+  let runStart = -1;
+  for (let y = 0; y <= height; y++) {
+    if (y < height && rowHasText[y]) {
+      if (runStart === -1) runStart = y;
+      continue;
+    }
+
+    if (runStart !== -1) {
+      const runEnd = y - 1;
+      if (runEnd - runStart + 1 >= minRunHeight) {
+        lastTextRow = runEnd;
+      }
+      runStart = -1;
+    }
+  }
+
+  if (lastTextRow === -1) return imageBuffer;
+  const croppedHeight = Math.min(height, lastTextRow + 1 + bottomPadding);
+  if (height - croppedHeight < Number(ocrConfig.textTrimMinPixels ?? 16)) return imageBuffer;
+
+  return sharp(imageBuffer)
+    .extract({ left: 0, top: 0, width, height: croppedHeight })
+    .png()
+    .toBuffer();
 }
 
 module.exports = {

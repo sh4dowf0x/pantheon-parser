@@ -50,6 +50,8 @@
       "refineToDarkBounds": true,
       "edgeDarkCutoff": 28,
       "edgeMinDarkRatio": 0.5,
+      "edgeMinRowDarkRatio": 0.72,
+      "edgeMinColDarkRatio": 0.5,
       "edgeMinWidth": 0.65,
       "edgeMinHeight": 0.45,
       "edgePadding": 0
@@ -72,6 +74,13 @@
   "ocr": {
     "language": "eng",
     "psm": "6",
-    "threshold": 135
+    "threshold": 135,
+    "trimBottomNoise": true,
+    "textRowMinBlackRatio": 0.012,
+    "textRowBuckets": 32,
+    "textRowMinBuckets": 6,
+    "textMinRunHeight": 8,
+    "textBottomPadding": 12,
+    "textTrimMinPixels": 16
   }
 }
