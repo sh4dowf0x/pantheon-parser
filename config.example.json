@@ -70,7 +70,7 @@
       "panelInnerBottomInset": 48
     }
   },
-  "intervalMs": 750,
+  "intervalMs": 250,
   "statusEveryMs": 10000,
   "dedupe": {
     "ttlMs": 3600000,
