@@ -51,7 +51,10 @@ assert.equal(normalizeAbility('Auto 3 Attack'), 'Auto Attack');
 assert.equal(normalizeAbility('Auto Aa a Attack'), 'Auto Attack');
 assert.equal(normalizeAbility('Auto Attack. (10 mitigated) oe'), 'Auto Attack');
 assert.equal(normalizeAbility('Bane of i Venom II'), 'Bane of Venom II');
+assert.equal(normalizeAbility('Bane of Venom'), 'Bane of Venom II');
+assert.equal(normalizeAbility('Bane of Venom I'), 'Bane of Venom II');
 assert.equal(normalizeAbility('Bane of Venom Il'), 'Bane of Venom II');
+assert.equal(normalizeAbility('Bane of Venom 11'), 'Bane of Venom II');
 assert.equal(normalizeAbility('Serpentine Strike 11'), 'Serpentine Strike II');
 assert.equal(normalizeAbility('Thomcoat'), 'Thorncoat');
 assert.equal(normalizeAbility('Thormncoat'), 'Thorncoat');
@@ -195,6 +198,10 @@ assert.equal(noisyAutoAttackTwo.ability, 'Auto Attack');
 const noisyBane = parseCombatLine("Shadowfox dealt 14 Poison damage to spine crawler with Bane of i Venom II. (3 mitigated)");
 assert.equal(noisyBane.eventType, 'damage');
 assert.equal(noisyBane.ability, 'Bane of Venom II');
+
+const unrankedBane = parseCombatLine("Shadowfox dealt 14 Poison damage to spine crawler with Bane of Venom. (3 mitigated)");
+assert.equal(unrankedBane.eventType, 'damage');
+assert.equal(unrankedBane.ability, 'Bane of Venom II');
 
 const leadingJunkName = parseCombatLine("1 Bitik dealt 10 Physical damage to gas bat nestling with Auto Attack. (2 mitigated)");
 assert.equal(leadingJunkName.eventType, 'damage');
