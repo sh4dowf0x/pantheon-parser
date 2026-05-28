@@ -75,6 +75,7 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const edgePadding = Number(autoConfig.edgePadding ?? 0);
   const minWidth = Math.max(20, Math.floor(region.width * Number(autoConfig.edgeMinWidth ?? 0.65)));
   const minHeight = Math.max(20, Math.floor(region.height * Number(autoConfig.edgeMinHeight ?? 0.45)));
+  const minComponentArea = Number(autoConfig.edgeMinComponentArea ?? 5000);
   const sample = await sharp(image)
     .extract({
       left: region.x,
@@ -89,6 +90,39 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const width = sample.info.width;
   const height = sample.info.height;
   const channels = sample.info.channels;
+  const component = findLargestDarkComponent(sample.data, width, height, channels, darkCutoff, minComponentArea);
+  if (component) {
+    const verticalBounds = shrinkDarkRows(
+      sample.data,
+      width,
+      channels,
+      darkCutoff,
+      component,
+      minRowDarkRatio
+    );
+    const bounds = verticalBounds ? {
+      ...component,
+      top: verticalBounds.top,
+      bottom: verticalBounds.bottom
+    } : component;
+    const refined = clampRegion({
+      x: region.x + bounds.left - edgePadding,
+      y: region.y + bounds.top - edgePadding,
+      width: bounds.right - bounds.left + 1 + edgePadding * 2,
+      height: bounds.bottom - bounds.top + 1 + edgePadding * 2
+    }, metadata);
+
+    if (refined.width >= minWidth && refined.height >= minHeight) {
+      return {
+        region: refined,
+        refined: true,
+        strategy: 'largestDarkComponent',
+        bounds,
+        component
+      };
+    }
+  }
+
   const rowDark = new Uint32Array(height);
   const colDark = new Uint32Array(width);
 
@@ -134,8 +168,96 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   return {
     region: refined,
     refined: true,
+    strategy: 'rowColumnDarkBounds',
     bounds: { left, right, top, bottom }
   };
+}
+
+function findLargestDarkComponent(data, width, height, channels, darkCutoff, minArea) {
+  const size = width * height;
+  const visited = new Uint8Array(size);
+  const queue = new Int32Array(size);
+  let best = null;
+
+  for (let start = 0; start < size; start++) {
+    if (visited[start] || !isDarkPixel(data, start, channels, darkCutoff)) continue;
+
+    let head = 0;
+    let tail = 0;
+    let area = 0;
+    let left = width;
+    let right = 0;
+    let top = height;
+    let bottom = 0;
+    visited[start] = 1;
+    queue[tail++] = start;
+
+    function addNeighbor(index) {
+      if (visited[index] || !isDarkPixel(data, index, channels, darkCutoff)) return;
+      visited[index] = 1;
+      queue[tail++] = index;
+    }
+
+    while (head < tail) {
+      const index = queue[head++];
+      const x = index % width;
+      const y = Math.floor(index / width);
+      area++;
+      if (x < left) left = x;
+      if (x > right) right = x;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+
+      if (x > 0) addNeighbor(index - 1);
+      if (x < width - 1) addNeighbor(index + 1);
+      if (y > 0) addNeighbor(index - width);
+      if (y < height - 1) addNeighbor(index + width);
+    }
+
+    if (area >= minArea && (!best || area > best.area)) {
+      best = { left, right, top, bottom, area };
+    }
+  }
+
+  return best;
+}
+
+function shrinkDarkRows(data, width, channels, darkCutoff, bounds, minRowRatio) {
+  const left = Math.max(0, bounds.left);
+  const right = Math.min(width - 1, bounds.right);
+  const top = Math.max(0, bounds.top);
+  const bottom = Math.max(top, bounds.bottom);
+  const boxWidth = right - left + 1;
+  const boxHeight = bottom - top + 1;
+  if (boxWidth <= 0 || boxHeight <= 0) return null;
+
+  const rowDark = new Uint32Array(boxHeight);
+  for (let y = top; y <= bottom; y++) {
+    for (let x = left; x <= right; x++) {
+      const index = y * width + x;
+      if (!isDarkPixel(data, index, channels, darkCutoff)) continue;
+      rowDark[y - top]++;
+    }
+  }
+
+  const localTop = findFirstIndex(rowDark, boxWidth, minRowRatio);
+  const localBottom = findLastIndex(rowDark, boxWidth, minRowRatio);
+  if (localTop === -1 || localBottom === -1) return null;
+
+  return {
+    top: top + localTop,
+    bottom: top + localBottom,
+    area: bounds.area
+  };
+}
+
+function isDarkPixel(data, index, channels, darkCutoff) {
+  const offset = index * channels;
+  const r = data[offset];
+  const g = data[offset + 1];
+  const b = data[offset + 2];
+  const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luma <= darkCutoff;
 }
 
 function findFirstIndex(values, denominator, minRatio) {
@@ -540,7 +662,7 @@ async function captureRegion(config, options = {}) {
 
   const ocrConfig = config.ocr || {};
   const processed = await preprocessForOcr(image, region, ocrConfig);
-  const ocrImage = await trimOcrNoise(processed, ocrConfig);
+  const ocrImage = await trimBottomNoise(processed, ocrConfig);
 
   if (options.debugImagePath) {
     fs.mkdirSync(path.dirname(options.debugImagePath), { recursive: true });
@@ -585,12 +707,8 @@ async function preprocessForOcr(image, region, ocrConfig = {}) {
     .toBuffer();
 }
 
-async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
-  if (
-    ocrConfig.trimBottomNoise === false &&
-    ocrConfig.trimLeftNoise === false &&
-    ocrConfig.trimRightNoise === false
-  ) return imageBuffer;
+async function trimBottomNoise(imageBuffer, ocrConfig = {}) {
+  if (ocrConfig.trimBottomNoise === false) return imageBuffer;
 
   const sample = await sharp(imageBuffer)
     .grayscale()
@@ -604,11 +722,7 @@ async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
   const minBuckets = Number(ocrConfig.textRowMinBuckets ?? 6);
   const minRunHeight = Number(ocrConfig.textMinRunHeight ?? 8);
   const bottomPadding = Number(ocrConfig.textBottomPadding ?? 12);
-  const leftPadding = Number(ocrConfig.textLeftPadding ?? 2);
-  const rightPadding = Number(ocrConfig.textRightPadding ?? 80);
-  const minColTextRatio = Number(ocrConfig.textColMinBlackRatio ?? 0.18);
   const rowHasText = new Array(height).fill(false);
-  const rowIsInTextRun = new Array(height).fill(false);
 
   for (let y = 0; y < height; y++) {
     let black = 0;
@@ -635,82 +749,27 @@ async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
 
     if (runStart !== -1) {
       const runEnd = y - 1;
-      markTextRun(runStart, runEnd);
+      if (runEnd - runStart + 1 >= minRunHeight) {
+        lastTextRow = runEnd;
+      }
       runStart = -1;
     }
   }
 
   if (lastTextRow === -1) return imageBuffer;
-  const croppedHeight = ocrConfig.trimBottomNoise === false
-    ? height
-    : Math.min(height, lastTextRow + 1 + bottomPadding);
+  const croppedHeight = Math.min(height, lastTextRow + 1 + bottomPadding);
   const shouldTrimBottom = height - croppedHeight >= Number(ocrConfig.textTrimMinPixels ?? 16);
-  const left = ocrConfig.trimLeftNoise === false
-    ? 0
-    : findTextLeftEdge(sample.data, width, height, channels, rowIsInTextRun, minColTextRatio, leftPadding);
-  const right = ocrConfig.trimRightNoise === false
-    ? width - 1
-    : findTextRightEdge(sample.data, width, height, channels, rowIsInTextRun, minColTextRatio, rightPadding);
-  const shouldTrimLeft = left >= Number(ocrConfig.textTrimMinPixels ?? 16);
-  const shouldTrimRight = width - right - 1 >= Number(ocrConfig.textTrimMinPixels ?? 16);
-  const forcedLeftTrim = Number(ocrConfig.textForcedLeftTrim ?? 0);
-
-  if (!shouldTrimBottom && !shouldTrimLeft && !shouldTrimRight && forcedLeftTrim <= 0) return imageBuffer;
-
-  const cropLeft = Math.min(width - 1, Math.max(shouldTrimLeft ? left : 0, forcedLeftTrim));
-  const cropRight = shouldTrimRight ? right : width - 1;
+  if (!shouldTrimBottom) return imageBuffer;
 
   return sharp(imageBuffer)
     .extract({
-      left: cropLeft,
+      left: 0,
       top: 0,
-      width: cropRight - cropLeft + 1,
-      height: shouldTrimBottom ? croppedHeight : height
+      width,
+      height: croppedHeight
     })
     .png()
     .toBuffer();
-
-  function markTextRun(start, end) {
-    if (end - start + 1 < minRunHeight) return;
-    for (let y = start; y <= end; y++) rowIsInTextRun[y] = true;
-    lastTextRow = end;
-  }
-}
-
-function findTextLeftEdge(data, width, height, channels, rowIsInTextRun, minColTextRatio, leftPadding) {
-  const textRows = rowIsInTextRun.reduce((total, value) => total + (value ? 1 : 0), 0);
-  if (!textRows) return 0;
-
-  const minColumnBlack = Math.max(2, Math.floor(textRows * minColTextRatio));
-  for (let x = 0; x < width; x++) {
-    let black = 0;
-    for (let y = 0; y < height; y++) {
-      if (!rowIsInTextRun[y]) continue;
-      const value = data[(y * width + x) * channels];
-      if (value < 128) black++;
-    }
-    if (black >= minColumnBlack) return Math.max(0, x - leftPadding);
-  }
-
-  return 0;
-}
-
-function findTextRightEdge(data, width, height, channels, rowIsInTextRun, minColTextRatio, rightPadding) {
-  const textRows = rowIsInTextRun.reduce((total, value) => total + (value ? 1 : 0), 0);
-  if (!textRows) return width - 1;
-
-  const minColumnBlack = Math.max(2, Math.floor(textRows * minColTextRatio));
-  for (let x = width - 1; x >= 0; x--) {
-    let black = 0;
-    for (let y = 0; y < height; y++) {
-      if (!rowIsInTextRun[y]) continue;
-      const value = data[(y * width + x) * channels];
-      if (value < 128) black++;
-    }
-    if (black >= minColumnBlack) return Math.min(width - 1, x + rightPadding);
-  }
-
-  return width - 1;
 }
 
 module.exports = {
