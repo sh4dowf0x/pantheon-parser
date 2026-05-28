@@ -46,7 +46,13 @@
       "minHeight": 0.1,
       "maxHeight": 0.24,
       "darkCutoff": 55,
-      "padding": 4
+      "padding": 12,
+      "refineToDarkBounds": true,
+      "edgeDarkCutoff": 28,
+      "edgeMinDarkRatio": 0.5,
+      "edgeMinWidth": 0.65,
+      "edgeMinHeight": 0.45,
+      "edgePadding": 0
     }
   },
   "intervalMs": 750,

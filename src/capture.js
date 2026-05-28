@@ -63,29 +63,119 @@ function clampRegion(region, metadata) {
   return { x, y, width, height };
 }
 
+async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
+  if (autoConfig.refineToDarkBounds === false) {
+    return { region, refined: false, reason: 'disabled' };
+  }
+
+  const darkCutoff = Number(autoConfig.edgeDarkCutoff ?? autoConfig.darkCutoff ?? 55);
+  const minDarkRatio = Number(autoConfig.edgeMinDarkRatio ?? 0.45);
+  const edgePadding = Number(autoConfig.edgePadding ?? 0);
+  const minWidth = Math.max(20, Math.floor(region.width * Number(autoConfig.edgeMinWidth ?? 0.65)));
+  const minHeight = Math.max(20, Math.floor(region.height * Number(autoConfig.edgeMinHeight ?? 0.45)));
+  const sample = await sharp(image)
+    .extract({
+      left: region.x,
+      top: region.y,
+      width: region.width,
+      height: region.height
+    })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const width = sample.info.width;
+  const height = sample.info.height;
+  const channels = sample.info.channels;
+  const rowDark = new Uint32Array(height);
+  const colDark = new Uint32Array(width);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const offset = (y * width + x) * channels;
+      const r = sample.data[offset];
+      const g = sample.data[offset + 1];
+      const b = sample.data[offset + 2];
+      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (luma <= darkCutoff) {
+        rowDark[y]++;
+        colDark[x]++;
+      }
+    }
+  }
+
+  const left = findFirstIndex(colDark, height, minDarkRatio);
+  const right = findLastIndex(colDark, height, minDarkRatio);
+  const top = findFirstIndex(rowDark, width, minDarkRatio);
+  const bottom = findLastIndex(rowDark, width, minDarkRatio);
+  if (left === -1 || right === -1 || top === -1 || bottom === -1) {
+    return { region, refined: false, reason: 'no dark bounds found' };
+  }
+
+  const refined = clampRegion({
+    x: region.x + left - edgePadding,
+    y: region.y + top - edgePadding,
+    width: right - left + 1 + edgePadding * 2,
+    height: bottom - top + 1 + edgePadding * 2
+  }, metadata);
+
+  if (refined.width < minWidth || refined.height < minHeight) {
+    return {
+      region,
+      refined: false,
+      reason: 'dark bounds were too small',
+      bounds: { left, right, top, bottom },
+      candidate: refined
+    };
+  }
+
+  return {
+    region: refined,
+    refined: true,
+    bounds: { left, right, top, bottom }
+  };
+}
+
+function findFirstIndex(values, denominator, minRatio) {
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] / denominator >= minRatio) return i;
+  }
+  return -1;
+}
+
+function findLastIndex(values, denominator, minRatio) {
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i] / denominator >= minRatio) return i;
+  }
+  return -1;
+}
+
 async function detectCombatLogRegion(image, metadata, captureConfig, windowRect) {
   const auto = captureConfig.autoCombatLog || {};
   if (auto.x !== undefined && auto.y !== undefined && auto.width !== undefined && auto.height !== undefined) {
     const padding = auto.padding ?? 4;
-    const region = clampRegion({
+    const seedRegion = clampRegion({
       x: windowRect.x + Math.round(windowRect.width * auto.x) - padding,
       y: windowRect.y + Math.round(windowRect.height * auto.y) - padding,
       width: Math.round(windowRect.width * auto.width) + padding * 2,
       height: Math.round(windowRect.height * auto.height) + padding * 2
     }, metadata);
+    const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
 
     return {
-      region,
+      region: refined.region,
       detection: {
         mode: 'autoCombatLog',
         matched: true,
-        strategy: 'fixedWindowRatio',
+        strategy: refined.refined ? 'fixedWindowRatioDarkBounds' : 'fixedWindowRatio',
         ratio: {
           x: auto.x,
           y: auto.y,
           width: auto.width,
           height: auto.height
-        }
+        },
+        seedRegion,
+        refinement: refined
       }
     };
   }
@@ -175,15 +265,16 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
   }
 
   const padding = auto.padding ?? 4;
-  const region = clampRegion({
+  const seedRegion = clampRegion({
     x: windowRect.x + best.x - padding,
     y: windowRect.y + best.y - padding,
     width: best.width + padding * 2,
     height: best.height + padding * 2
   }, metadata);
+  const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
 
   return {
-    region,
+    region: refined.region,
     detection: {
       mode: 'autoCombatLog',
       matched: true,
@@ -194,7 +285,9 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
         width: best.width + padding * 2,
         height: best.height + padding * 2
       },
-      search: { x: searchX, y: searchY, width: searchWidth, height: searchHeight }
+      seedRegion,
+      search: { x: searchX, y: searchY, width: searchWidth, height: searchHeight },
+      refinement: refined
     }
   };
 }
