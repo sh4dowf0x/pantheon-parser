@@ -38,7 +38,10 @@ function writeCaptureRegion(config, capture, observedAt) {
     region: capture.region,
     detection: capture.detection ? {
       mode: capture.detection.mode,
-      strategy: capture.detection.refinement?.strategy || capture.detection.strategy || null,
+      strategy: capture.detection.strategy || capture.detection.refinement?.strategy || null,
+      locked: capture.detection.locked === true,
+      lockedAt: capture.detection.lockedAt || null,
+      sourceStrategy: capture.detection.sourceStrategy || null,
       refinement: capture.detection.refinement || null
     } : null
   });

@@ -47,9 +47,14 @@
       "maxHeight": 0.24,
       "darkCutoff": 55,
       "padding": 12,
+      "lockRegion": true,
       "refineToDarkBounds": true,
       "panelBackgroundColor": "#000000",
       "panelBackgroundTolerance": 2,
+      "panelMinRowRatio": 0.15,
+      "panelMinColRatio": 0.1,
+      "panelMinRunHeight": 10,
+      "panelMinRunWidth": 10,
       "edgeDarkCutoff": 28,
       "edgeMinDarkRatio": 0.5,
       "edgeMinRowDarkRatio": 0.84,
@@ -58,10 +63,10 @@
       "edgeMinHeight": 0.45,
       "edgeMinComponentArea": 5000,
       "edgePadding": 0,
-      "edgeHorizontalPadding": 16,
+      "edgeHorizontalPadding": 0,
       "edgeVerticalPadding": 0,
-      "panelInnerLeftInset": 8,
-      "panelInnerRightInset": 10
+      "panelInnerLeftInset": 0,
+      "panelInnerRightInset": 0
     }
   },
   "intervalMs": 750,

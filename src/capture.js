@@ -6,6 +6,7 @@ const sharp = require('sharp');
 
 let cachedWindow = null;
 let cachedWindowAt = 0;
+let lockedAutoCombatLog = null;
 
 function resolveRegion(metadata, captureConfig, windowRect = null) {
   const mode = captureConfig.mode || 'fraction';
@@ -97,6 +98,34 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const width = sample.info.width;
   const height = sample.info.height;
   const channels = sample.info.channels;
+  if (panelPixel.exact) {
+    const exactBounds = findPanelBoundsFromRowsColumns(sample.data, width, height, channels, panelPixel.matches, {
+      minRowRatio: Number(autoConfig.panelMinRowRatio ?? 0.18),
+      minColRatio: Number(autoConfig.panelMinColRatio ?? 0.18),
+      minRunHeight: Number(autoConfig.panelMinRunHeight ?? 12),
+      minRunWidth: Number(autoConfig.panelMinRunWidth ?? 12)
+    });
+
+    if (exactBounds) {
+      const refined = clampRegion({
+        x: region.x + exactBounds.left - edgeHorizontalPadding + innerLeftInset,
+        y: region.y + exactBounds.top - edgeVerticalPadding + innerTopInset,
+        width: exactBounds.right - exactBounds.left + 1 + edgeHorizontalPadding * 2 - innerLeftInset - innerRightInset,
+        height: exactBounds.bottom - exactBounds.top + 1 + edgeVerticalPadding * 2 - innerTopInset - innerBottomInset
+      }, metadata);
+
+      if (refined.width >= minWidth && refined.height >= minHeight) {
+        return {
+          region: refined,
+          refined: true,
+          strategy: 'exactPanelBackgroundBounds',
+          pixelMatcher: panelPixel.description,
+          bounds: exactBounds
+        };
+      }
+    }
+  }
+
   const component = findLargestPanelComponent(sample.data, width, height, channels, panelPixel.matches, minComponentArea);
   if (component) {
     const rectBounds = shrinkPanelRectangle(
@@ -295,6 +324,30 @@ function findLargestPanelComponent(data, width, height, channels, matchesPixel, 
   return best;
 }
 
+function findPanelBoundsFromRowsColumns(data, width, height, channels, matchesPixel, options) {
+  const rowMatches = new Uint32Array(height);
+  const colMatches = new Uint32Array(width);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const index = y * width + x;
+      if (!matchesPixel(data, index, channels)) continue;
+      rowMatches[y]++;
+      colMatches[x]++;
+    }
+  }
+
+  const top = findFirstSustainedIndex(rowMatches, width, options.minRowRatio, options.minRunHeight);
+  const bottom = findLastSustainedIndex(rowMatches, width, options.minRowRatio, options.minRunHeight);
+  const left = findFirstSustainedIndex(colMatches, height, options.minColRatio, options.minRunWidth);
+  const right = findLastSustainedIndex(colMatches, height, options.minColRatio, options.minRunWidth);
+  if (top === -1 || bottom === -1 || left === -1 || right === -1 || right <= left || bottom <= top) {
+    return null;
+  }
+
+  return { left, right, top, bottom };
+}
+
 function shrinkPanelRectangle(data, width, channels, matchesPixel, bounds, minRowRatio, minColRatio) {
   const left = Math.max(0, bounds.left);
   const right = Math.min(width - 1, bounds.right);
@@ -401,6 +454,29 @@ function findLastSustainedIndex(values, denominator, minRatio, minRun) {
 
 async function detectCombatLogRegion(image, metadata, captureConfig, windowRect) {
   const auto = captureConfig.autoCombatLog || {};
+  const lockRegion = auto.lockRegion !== false;
+  if (lockRegion && lockedAutoCombatLog && lockedAutoCombatLog.windowWidth === windowRect.width && lockedAutoCombatLog.windowHeight === windowRect.height) {
+    const region = clampRegion({
+      x: windowRect.x + lockedAutoCombatLog.relative.x,
+      y: windowRect.y + lockedAutoCombatLog.relative.y,
+      width: lockedAutoCombatLog.relative.width,
+      height: lockedAutoCombatLog.relative.height
+    }, metadata);
+
+    return {
+      region,
+      detection: {
+        mode: 'autoCombatLog',
+        matched: true,
+        strategy: 'lockedAutoCombatLogRegion',
+        locked: true,
+        sourceStrategy: lockedAutoCombatLog.strategy,
+        lockedAt: lockedAutoCombatLog.lockedAt,
+        refinement: lockedAutoCombatLog.refinement
+      }
+    };
+  }
+
   if (auto.x !== undefined && auto.y !== undefined && auto.width !== undefined && auto.height !== undefined) {
     const padding = auto.padding ?? 4;
     const seedRegion = clampRegion({
@@ -410,6 +486,21 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
       height: Math.round(windowRect.height * auto.height) + padding * 2
     }, metadata);
     const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
+    if (lockRegion && refined.refined) {
+      lockedAutoCombatLog = {
+        lockedAt: new Date().toISOString(),
+        windowWidth: windowRect.width,
+        windowHeight: windowRect.height,
+        relative: {
+          x: refined.region.x - windowRect.x,
+          y: refined.region.y - windowRect.y,
+          width: refined.region.width,
+          height: refined.region.height
+        },
+        strategy: refined.strategy,
+        refinement: refined
+      };
+    }
 
     return {
       region: refined.region,
@@ -521,6 +612,21 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
     height: best.height + padding * 2
   }, metadata);
   const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
+  if (lockRegion && refined.refined) {
+    lockedAutoCombatLog = {
+      lockedAt: new Date().toISOString(),
+      windowWidth: windowRect.width,
+      windowHeight: windowRect.height,
+      relative: {
+        x: refined.region.x - windowRect.x,
+        y: refined.region.y - windowRect.y,
+        width: refined.region.width,
+        height: refined.region.height
+      },
+      strategy: refined.strategy,
+      refinement: refined
+    };
+  }
 
   return {
     region: refined.region,
@@ -672,6 +778,7 @@ $windows | Select-Object -First 1 | ConvertTo-Json -Compress
 function clearCachedWindow() {
   cachedWindow = null;
   cachedWindowAt = 0;
+  lockedAutoCombatLog = null;
 }
 
 function listWindows(windowConfig = {}) {
