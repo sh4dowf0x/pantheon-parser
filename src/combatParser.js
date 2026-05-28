@@ -69,6 +69,8 @@ function normalizeAbility(value) {
   if (/^Auto\b.*\bAttack$/i.test(ability)) return 'Auto Attack';
   if (/^Auto\s+tack$/i.test(ability)) return 'Auto Attack';
   if (/^Bane of Venom(?:\s+(?:I|II|Il|ll|1|11))?$/i.test(ability)) return 'Bane of Venom II';
+  if (/^Hirode's Flame\s+(?:I|1)$/i.test(ability)) return "Hirode's Flame I";
+  if (/^Hirode's Flame(?:\s+(?:II|Il|ll|11))?$/i.test(ability)) return "Hirode's Flame II";
   if (/^Corrupt\b.*\bBlood\b.*$/i.test(ability)) return 'Corrupt Blood I';
   if (/^Bleeding(?:\b.*\bEssence)?$/i.test(ability)) return 'Bleeding Essence';
   if (/^Thresh(?:\s+(?:I|1|l|7|Fl))?$/i.test(ability)) return 'Thresh I';

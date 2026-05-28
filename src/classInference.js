@@ -18,6 +18,7 @@ const CLASS_RULES = [
     className: 'Druid',
     abilities: [
       'Ignite',
+      "Hirode's Flame",
       'Stinging Swarm',
       'Talisman of Regrowth',
       'Verdanfire Bolt'

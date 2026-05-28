@@ -55,6 +55,10 @@ assert.equal(normalizeAbility('Bane of Venom'), 'Bane of Venom II');
 assert.equal(normalizeAbility('Bane of Venom I'), 'Bane of Venom II');
 assert.equal(normalizeAbility('Bane of Venom Il'), 'Bane of Venom II');
 assert.equal(normalizeAbility('Bane of Venom 11'), 'Bane of Venom II');
+assert.equal(normalizeAbility("Hirode's Flame"), "Hirode's Flame II");
+assert.equal(normalizeAbility("Hirode's Flame I"), "Hirode's Flame I");
+assert.equal(normalizeAbility("Hirode's Flame Il"), "Hirode's Flame II");
+assert.equal(normalizeAbility("Hirode's Flame 11"), "Hirode's Flame II");
 assert.equal(normalizeAbility('Serpentine Strike 11'), 'Serpentine Strike II');
 assert.equal(normalizeAbility('Thomcoat'), 'Thorncoat');
 assert.equal(normalizeAbility('Thormncoat'), 'Thorncoat');
@@ -114,6 +118,10 @@ assert.deepEqual(
 );
 assert.deepEqual(
   inferClassFromAbilities(['Talisman of Regrowth II', 'Ignite II', 'Verdanfire Bolt']).className,
+  'Druid'
+);
+assert.deepEqual(
+  inferClassFromAbilities(["Hirode's Flame II"]).className,
   'Druid'
 );
 assert.deepEqual(
@@ -236,6 +244,11 @@ const noisyMantleHealTwo = parseCombatLine('Shadowfox was healed for 4 by Mantle
 assert.equal(noisyMantleHealTwo.eventType, 'healing');
 assert.equal(noisyMantleHealTwo.source, null);
 assert.equal(noisyMantleHealTwo.ability, 'Mantle of Mist II');
+
+const hirodeHeal = parseCombatLine("Shadowfox was healed for 8 by Hirode's Flame Il.");
+assert.equal(hirodeHeal.eventType, 'healing');
+assert.equal(hirodeHeal.source, null);
+assert.equal(hirodeHeal.ability, "Hirode's Flame II");
 
 const sourcedHeal = parseCombatLine('Cleric healed Shadowfox for 42 with Flash Heal.');
 assert.equal(sourcedHeal.eventType, 'healing');
