@@ -554,7 +554,7 @@ async function captureRegion(config, options = {}) {
     .negate()
     .png()
     .toBuffer();
-  const ocrImage = await trimBottomNoise(processed, ocrConfig);
+  const ocrImage = await trimOcrNoise(processed, ocrConfig);
 
   if (options.debugImagePath) {
     fs.mkdirSync(path.dirname(options.debugImagePath), { recursive: true });
@@ -564,8 +564,12 @@ async function captureRegion(config, options = {}) {
   return { image: ocrImage, screen: metadata, region, window: windowRect, detection };
 }
 
-async function trimBottomNoise(imageBuffer, ocrConfig = {}) {
-  if (ocrConfig.trimBottomNoise === false) return imageBuffer;
+async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
+  if (
+    ocrConfig.trimBottomNoise === false &&
+    ocrConfig.trimLeftNoise === false &&
+    ocrConfig.trimRightNoise === false
+  ) return imageBuffer;
 
   const sample = await sharp(imageBuffer)
     .grayscale()
@@ -579,7 +583,11 @@ async function trimBottomNoise(imageBuffer, ocrConfig = {}) {
   const minBuckets = Number(ocrConfig.textRowMinBuckets ?? 6);
   const minRunHeight = Number(ocrConfig.textMinRunHeight ?? 8);
   const bottomPadding = Number(ocrConfig.textBottomPadding ?? 12);
+  const leftPadding = Number(ocrConfig.textLeftPadding ?? 2);
+  const rightPadding = Number(ocrConfig.textRightPadding ?? 80);
+  const minColTextRatio = Number(ocrConfig.textColMinBlackRatio ?? 0.18);
   const rowHasText = new Array(height).fill(false);
+  const rowIsInTextRun = new Array(height).fill(false);
 
   for (let y = 0; y < height; y++) {
     let black = 0;
@@ -606,21 +614,81 @@ async function trimBottomNoise(imageBuffer, ocrConfig = {}) {
 
     if (runStart !== -1) {
       const runEnd = y - 1;
-      if (runEnd - runStart + 1 >= minRunHeight) {
-        lastTextRow = runEnd;
-      }
+      markTextRun(runStart, runEnd);
       runStart = -1;
     }
   }
 
   if (lastTextRow === -1) return imageBuffer;
-  const croppedHeight = Math.min(height, lastTextRow + 1 + bottomPadding);
-  if (height - croppedHeight < Number(ocrConfig.textTrimMinPixels ?? 16)) return imageBuffer;
+  const croppedHeight = ocrConfig.trimBottomNoise === false
+    ? height
+    : Math.min(height, lastTextRow + 1 + bottomPadding);
+  const shouldTrimBottom = height - croppedHeight >= Number(ocrConfig.textTrimMinPixels ?? 16);
+  const left = ocrConfig.trimLeftNoise === false
+    ? 0
+    : findTextLeftEdge(sample.data, width, height, channels, rowIsInTextRun, minColTextRatio, leftPadding);
+  const right = ocrConfig.trimRightNoise === false
+    ? width - 1
+    : findTextRightEdge(sample.data, width, height, channels, rowIsInTextRun, minColTextRatio, rightPadding);
+  const shouldTrimLeft = left >= Number(ocrConfig.textTrimMinPixels ?? 16);
+  const shouldTrimRight = width - right - 1 >= Number(ocrConfig.textTrimMinPixels ?? 16);
+
+  if (!shouldTrimBottom && !shouldTrimLeft && !shouldTrimRight) return imageBuffer;
+
+  const cropLeft = shouldTrimLeft ? left : 0;
+  const cropRight = shouldTrimRight ? right : width - 1;
 
   return sharp(imageBuffer)
-    .extract({ left: 0, top: 0, width, height: croppedHeight })
+    .extract({
+      left: cropLeft,
+      top: 0,
+      width: cropRight - cropLeft + 1,
+      height: shouldTrimBottom ? croppedHeight : height
+    })
     .png()
     .toBuffer();
+
+  function markTextRun(start, end) {
+    if (end - start + 1 < minRunHeight) return;
+    for (let y = start; y <= end; y++) rowIsInTextRun[y] = true;
+    lastTextRow = end;
+  }
+}
+
+function findTextLeftEdge(data, width, height, channels, rowIsInTextRun, minColTextRatio, leftPadding) {
+  const textRows = rowIsInTextRun.reduce((total, value) => total + (value ? 1 : 0), 0);
+  if (!textRows) return 0;
+
+  const minColumnBlack = Math.max(2, Math.floor(textRows * minColTextRatio));
+  for (let x = 0; x < width; x++) {
+    let black = 0;
+    for (let y = 0; y < height; y++) {
+      if (!rowIsInTextRun[y]) continue;
+      const value = data[(y * width + x) * channels];
+      if (value < 128) black++;
+    }
+    if (black >= minColumnBlack) return Math.max(0, x - leftPadding);
+  }
+
+  return 0;
+}
+
+function findTextRightEdge(data, width, height, channels, rowIsInTextRun, minColTextRatio, rightPadding) {
+  const textRows = rowIsInTextRun.reduce((total, value) => total + (value ? 1 : 0), 0);
+  if (!textRows) return width - 1;
+
+  const minColumnBlack = Math.max(2, Math.floor(textRows * minColTextRatio));
+  for (let x = width - 1; x >= 0; x--) {
+    let black = 0;
+    for (let y = 0; y < height; y++) {
+      if (!rowIsInTextRun[y]) continue;
+      const value = data[(y * width + x) * channels];
+      if (value < 128) black++;
+    }
+    if (black >= minColumnBlack) return Math.min(width - 1, x + rightPadding);
+  }
+
+  return width - 1;
 }
 
 module.exports = {
