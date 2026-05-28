@@ -52,6 +52,7 @@ const CLASS_RULES = [
     abilities: [
       'Aether Shards',
       'Blast Creation',
+      'Aether Darts',
       'Frail Mana Bomb'
     ]
   },
@@ -83,6 +84,8 @@ const CLASS_RULES = [
     className: 'Cleric',
     abilities: [
       'Celestial Light',
+      'Rebuke',
+      'Sturdy Strike',
       'Dawnfire'
     ]
   },
