@@ -75,9 +75,14 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const edgePadding = Number(autoConfig.edgePadding ?? 0);
   const edgeHorizontalPadding = Number(autoConfig.edgeHorizontalPadding ?? edgePadding);
   const edgeVerticalPadding = Number(autoConfig.edgeVerticalPadding ?? edgePadding);
+  const innerLeftInset = Number(autoConfig.panelInnerLeftInset ?? autoConfig.panelInnerHorizontalInset ?? 0);
+  const innerRightInset = Number(autoConfig.panelInnerRightInset ?? autoConfig.panelInnerHorizontalInset ?? 0);
+  const innerTopInset = Number(autoConfig.panelInnerTopInset ?? autoConfig.panelInnerVerticalInset ?? 0);
+  const innerBottomInset = Number(autoConfig.panelInnerBottomInset ?? autoConfig.panelInnerVerticalInset ?? 0);
   const minWidth = Math.max(20, Math.floor(region.width * Number(autoConfig.edgeMinWidth ?? 0.65)));
   const minHeight = Math.max(20, Math.floor(region.height * Number(autoConfig.edgeMinHeight ?? 0.45)));
   const minComponentArea = Number(autoConfig.edgeMinComponentArea ?? 5000);
+  const panelPixel = createPanelPixelMatcher(autoConfig, darkCutoff);
   const sample = await sharp(image)
     .extract({
       left: region.x,
@@ -92,30 +97,31 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const width = sample.info.width;
   const height = sample.info.height;
   const channels = sample.info.channels;
-  const component = findLargestDarkComponent(sample.data, width, height, channels, darkCutoff, minComponentArea);
+  const component = findLargestPanelComponent(sample.data, width, height, channels, panelPixel.matches, minComponentArea);
   if (component) {
-    const rectBounds = shrinkDarkRectangle(
+    const rectBounds = shrinkPanelRectangle(
       sample.data,
       width,
       channels,
-      darkCutoff,
+      panelPixel.matches,
       component,
       minRowDarkRatio,
       minColDarkRatio
     );
     const bounds = rectBounds || component;
     const refined = clampRegion({
-      x: region.x + bounds.left - edgeHorizontalPadding,
-      y: region.y + bounds.top - edgeVerticalPadding,
-      width: bounds.right - bounds.left + 1 + edgeHorizontalPadding * 2,
-      height: bounds.bottom - bounds.top + 1 + edgeVerticalPadding * 2
+      x: region.x + bounds.left - edgeHorizontalPadding + innerLeftInset,
+      y: region.y + bounds.top - edgeVerticalPadding + innerTopInset,
+      width: bounds.right - bounds.left + 1 + edgeHorizontalPadding * 2 - innerLeftInset - innerRightInset,
+      height: bounds.bottom - bounds.top + 1 + edgeVerticalPadding * 2 - innerTopInset - innerBottomInset
     }, metadata);
 
     if (refined.width >= minWidth && refined.height >= minHeight) {
       return {
         region: refined,
         refined: true,
-        strategy: 'largestDarkComponent',
+        strategy: panelPixel.exact ? 'exactPanelBackgroundRectangle' : 'largestDarkComponent',
+        pixelMatcher: panelPixel.description,
         bounds,
         component
       };
@@ -127,12 +133,8 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const offset = (y * width + x) * channels;
-      const r = sample.data[offset];
-      const g = sample.data[offset + 1];
-      const b = sample.data[offset + 2];
-      const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      if (luma <= darkCutoff) {
+      const index = y * width + x;
+      if (panelPixel.matches(sample.data, index, channels)) {
         rowDark[y]++;
         colDark[x]++;
       }
@@ -148,10 +150,10 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   }
 
   const refined = clampRegion({
-    x: region.x + left - edgeHorizontalPadding,
-    y: region.y + top - edgeVerticalPadding,
-    width: right - left + 1 + edgeHorizontalPadding * 2,
-    height: bottom - top + 1 + edgeVerticalPadding * 2
+    x: region.x + left - edgeHorizontalPadding + innerLeftInset,
+    y: region.y + top - edgeVerticalPadding + innerTopInset,
+    width: right - left + 1 + edgeHorizontalPadding * 2 - innerLeftInset - innerRightInset,
+    height: bottom - top + 1 + edgeVerticalPadding * 2 - innerTopInset - innerBottomInset
   }, metadata);
 
   if (refined.width < minWidth || refined.height < minHeight) {
@@ -167,19 +169,91 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   return {
     region: refined,
     refined: true,
-    strategy: 'rowColumnDarkBounds',
+    strategy: panelPixel.exact ? 'exactPanelBackgroundRowsColumns' : 'rowColumnDarkBounds',
+    pixelMatcher: panelPixel.description,
     bounds: { left, right, top, bottom }
   };
 }
 
-function findLargestDarkComponent(data, width, height, channels, darkCutoff, minArea) {
+function createPanelPixelMatcher(autoConfig, darkCutoff) {
+  const backgroundColor = parseRgbColor(autoConfig.panelBackgroundColor || autoConfig.edgeBackgroundColor);
+  if (backgroundColor) {
+    const tolerance = Number(autoConfig.panelBackgroundTolerance ?? autoConfig.edgeBackgroundTolerance ?? 2);
+    return {
+      exact: true,
+      description: {
+        mode: 'exactRgb',
+        color: backgroundColor,
+        tolerance
+      },
+      matches(data, index, channels) {
+        const offset = index * channels;
+        return (
+          Math.abs(data[offset] - backgroundColor.r) <= tolerance &&
+          Math.abs(data[offset + 1] - backgroundColor.g) <= tolerance &&
+          Math.abs(data[offset + 2] - backgroundColor.b) <= tolerance
+        );
+      }
+    };
+  }
+
+  return {
+    exact: false,
+    description: {
+      mode: 'luma',
+      darkCutoff
+    },
+    matches(data, index, channels) {
+      return isDarkPixel(data, index, channels, darkCutoff);
+    }
+  };
+}
+
+function parseRgbColor(value) {
+  if (!value) return null;
+  if (Array.isArray(value) && value.length >= 3) {
+    return {
+      r: Number(value[0]) || 0,
+      g: Number(value[1]) || 0,
+      b: Number(value[2]) || 0
+    };
+  }
+
+  const text = String(value).trim();
+  const hex = text.match(/^#?([0-9a-f]{6})$/i);
+  if (hex) {
+    const raw = hex[1];
+    return {
+      r: parseInt(raw.slice(0, 2), 16),
+      g: parseInt(raw.slice(2, 4), 16),
+      b: parseInt(raw.slice(4, 6), 16)
+    };
+  }
+
+  const rgb = text.match(/^(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})$/);
+  if (rgb) {
+    return {
+      r: clampColor(Number(rgb[1])),
+      g: clampColor(Number(rgb[2])),
+      b: clampColor(Number(rgb[3]))
+    };
+  }
+
+  return null;
+}
+
+function clampColor(value) {
+  return Math.max(0, Math.min(255, Number.isFinite(value) ? value : 0));
+}
+
+function findLargestPanelComponent(data, width, height, channels, matchesPixel, minArea) {
   const size = width * height;
   const visited = new Uint8Array(size);
   const queue = new Int32Array(size);
   let best = null;
 
   for (let start = 0; start < size; start++) {
-    if (visited[start] || !isDarkPixel(data, start, channels, darkCutoff)) continue;
+    if (visited[start] || !matchesPixel(data, start, channels)) continue;
 
     let head = 0;
     let tail = 0;
@@ -192,7 +266,7 @@ function findLargestDarkComponent(data, width, height, channels, darkCutoff, min
     queue[tail++] = start;
 
     function addNeighbor(index) {
-      if (visited[index] || !isDarkPixel(data, index, channels, darkCutoff)) return;
+      if (visited[index] || !matchesPixel(data, index, channels)) return;
       visited[index] = 1;
       queue[tail++] = index;
     }
@@ -221,7 +295,7 @@ function findLargestDarkComponent(data, width, height, channels, darkCutoff, min
   return best;
 }
 
-function shrinkDarkRectangle(data, width, channels, darkCutoff, bounds, minRowRatio, minColRatio) {
+function shrinkPanelRectangle(data, width, channels, matchesPixel, bounds, minRowRatio, minColRatio) {
   const left = Math.max(0, bounds.left);
   const right = Math.min(width - 1, bounds.right);
   const top = Math.max(0, bounds.top);
@@ -234,7 +308,7 @@ function shrinkDarkRectangle(data, width, channels, darkCutoff, bounds, minRowRa
   for (let y = top; y <= bottom; y++) {
     for (let x = left; x <= right; x++) {
       const index = y * width + x;
-      if (!isDarkPixel(data, index, channels, darkCutoff)) continue;
+      if (!matchesPixel(data, index, channels)) continue;
       rowDark[y - top]++;
     }
   }
@@ -250,7 +324,7 @@ function shrinkDarkRectangle(data, width, channels, darkCutoff, bounds, minRowRa
   for (let y = trimmedTop; y <= trimmedBottom; y++) {
     for (let x = left; x <= right; x++) {
       const index = y * width + x;
-      if (isDarkPixel(data, index, channels, darkCutoff)) colDark[x - left]++;
+      if (matchesPixel(data, index, channels)) colDark[x - left]++;
     }
   }
 

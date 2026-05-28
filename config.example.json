@@ -48,6 +48,8 @@
       "darkCutoff": 55,
       "padding": 12,
       "refineToDarkBounds": true,
+      "panelBackgroundColor": "#000000",
+      "panelBackgroundTolerance": 2,
       "edgeDarkCutoff": 28,
       "edgeMinDarkRatio": 0.5,
       "edgeMinRowDarkRatio": 0.84,
@@ -57,7 +59,9 @@
       "edgeMinComponentArea": 5000,
       "edgePadding": 0,
       "edgeHorizontalPadding": 16,
-      "edgeVerticalPadding": 0
+      "edgeVerticalPadding": 0,
+      "panelInnerLeftInset": 8,
+      "panelInnerRightInset": 10
     }
   },
   "intervalMs": 750,
