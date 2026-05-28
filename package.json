@@ -9,6 +9,7 @@
     "once": "node --no-warnings src/index.js --once --debug",
     "debug:capture": "node --no-warnings src/index.js --once --debug --dry-run",
     "calibrate": "node --no-warnings src/calibrate.js",
+    "overlay": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/capture-overlay.ps1 -RegionPath data/capture-region.json -ShowLabel",
     "watch:debug": "node --no-warnings src/index.js --debug",
     "test": "node --no-warnings test/parser.test.js"
   },

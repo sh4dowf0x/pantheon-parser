@@ -78,6 +78,11 @@
     "keepCaptureImage": true,
     "keepTimestampedCaptures": false
   },
+  "overlay": {
+    "enabled": true,
+    "writeRegion": true,
+    "regionPath": "data/capture-region.json"
+  },
   "ocr": {
     "language": "eng",
     "psm": "6",

@@ -16,6 +16,34 @@ function readConfig(configPath) {
   return JSON.parse(fs.readFileSync(target, 'utf8').replace(/^\uFEFF/, ''));
 }
 
+function writeJsonAtomic(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const tempPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tempPath, JSON.stringify(value, null, 2));
+  fs.renameSync(tempPath, filePath);
+}
+
+function writeCaptureRegion(config, capture, observedAt) {
+  const overlayConfig = config.overlay || {};
+  if (overlayConfig.enabled === false || overlayConfig.writeRegion === false) return;
+
+  const regionPath = path.resolve(process.cwd(), overlayConfig.regionPath || 'data/capture-region.json');
+  writeJsonAtomic(regionPath, {
+    observedAt,
+    screen: capture.screen ? {
+      width: capture.screen.width,
+      height: capture.screen.height
+    } : null,
+    window: capture.window,
+    region: capture.region,
+    detection: capture.detection ? {
+      mode: capture.detection.mode,
+      strategy: capture.detection.refinement?.strategy || capture.detection.strategy || null,
+      refinement: capture.detection.refinement || null
+    } : null
+  });
+}
+
 function parseArgs(argv) {
   const args = {
     once: false,
@@ -140,6 +168,7 @@ async function run() {
       const capture = await captureRegion(config, {
         debugImagePath: args.debug ? path.resolve(process.cwd(), config.debugImagePath || 'data/last-capture.png') : null
       });
+      writeCaptureRegion(config, capture, observedAt);
 
       const text = await ocr.recognize(capture.image);
       const debugConfig = config.debug || {};
@@ -150,8 +179,7 @@ async function run() {
       }
       if (args.debug && capture.detection) {
         const debugMetaPath = path.resolve(process.cwd(), 'data/last-capture-meta.json');
-        fs.mkdirSync(path.dirname(debugMetaPath), { recursive: true });
-        fs.writeFileSync(debugMetaPath, JSON.stringify({
+        writeJsonAtomic(debugMetaPath, {
           observedAt,
           screen: {
             width: capture.screen.width,
@@ -160,7 +188,7 @@ async function run() {
           window: capture.window,
           region: capture.region,
           detection: capture.detection
-        }, null, 2));
+        });
       }
       if (args.debug && debugConfig.keepTimestampedCaptures === true) {
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
