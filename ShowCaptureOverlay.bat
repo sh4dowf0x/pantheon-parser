@@ -10,7 +10,7 @@ echo Start the parser if no border appears yet.
 echo Press Ctrl+C in this window to stop the overlay.
 echo.
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\capture-overlay.ps1" -RegionPath "%~dp0data\capture-region.json" -ShowLabel
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\capture-overlay.ps1" -RegionPath "%~dp0data\capture-region.json"
 
 echo.
 echo Capture overlay stopped.

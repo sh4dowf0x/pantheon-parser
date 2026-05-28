@@ -17,7 +17,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "$self = $PID; Get-CimIns
 echo.
 
 set OVERLAY_PID=
-for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File','%~dp0scripts\capture-overlay.ps1','-RegionPath','%~dp0data\capture-region.json','-ShowLabel') -WindowStyle Hidden -PassThru; $p.Id"`) do set OVERLAY_PID=%%A
+for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Start-Process -FilePath powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File','%~dp0scripts\capture-overlay.ps1','-RegionPath','%~dp0data\capture-region.json') -WindowStyle Hidden -PassThru; $p.Id"`) do set OVERLAY_PID=%%A
 
 if defined OVERLAY_PID (
   echo Capture overlay started. PID %OVERLAY_PID%
