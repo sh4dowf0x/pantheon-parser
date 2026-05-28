@@ -74,7 +74,9 @@
   "ocr": {
     "language": "eng",
     "psm": "6",
+    "scale": 3,
     "threshold": 135,
+    "invert": true,
     "trimBottomNoise": true,
     "trimLeftNoise": true,
     "trimRightNoise": true,
@@ -83,6 +85,7 @@
     "textRowMinBuckets": 6,
     "textColMinBlackRatio": 0.18,
     "textLeftPadding": 2,
+    "textForcedLeftTrim": 50,
     "textRightPadding": 80,
     "textMinRunHeight": 8,
     "textBottomPadding": 12,

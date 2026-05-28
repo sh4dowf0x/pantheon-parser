@@ -539,21 +539,7 @@ async function captureRegion(config, options = {}) {
   }
 
   const ocrConfig = config.ocr || {};
-  const threshold = Number(ocrConfig.threshold ?? 135);
-  const processed = await sharp(image)
-    .extract({
-      left: region.x,
-      top: region.y,
-      width: region.width,
-      height: region.height
-    })
-    .flatten({ background: '#000000' })
-    .grayscale()
-    .resize({ width: region.width * 2, withoutEnlargement: false })
-    .threshold(threshold)
-    .negate()
-    .png()
-    .toBuffer();
+  const processed = await preprocessForOcr(image, region, ocrConfig);
   const ocrImage = await trimOcrNoise(processed, ocrConfig);
 
   if (options.debugImagePath) {
@@ -562,6 +548,41 @@ async function captureRegion(config, options = {}) {
   }
 
   return { image: ocrImage, screen: metadata, region, window: windowRect, detection };
+}
+
+async function preprocessForOcr(image, region, ocrConfig = {}) {
+  const threshold = Number(ocrConfig.threshold ?? 135);
+  const scale = Number(ocrConfig.scale ?? 2);
+  const invert = ocrConfig.invert !== false;
+  const input = await sharp(image)
+    .extract({
+      left: region.x,
+      top: region.y,
+      width: region.width,
+      height: region.height
+    })
+    .flatten({ background: '#000000' })
+    .resize({ width: Math.round(region.width * scale), withoutEnlargement: false })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const width = input.info.width;
+  const height = input.info.height;
+  const channels = input.info.channels;
+  const output = Buffer.alloc(width * height);
+
+  for (let i = 0; i < width * height; i++) {
+    const offset = i * channels;
+    const r = input.data[offset];
+    const g = input.data[offset + 1];
+    const b = input.data[offset + 2];
+    const value = Math.max(r, g, b) >= threshold ? 255 : 0;
+    output[i] = invert ? 255 - value : value;
+  }
+
+  return sharp(output, { raw: { width, height, channels: 1 } })
+    .png()
+    .toBuffer();
 }
 
 async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
@@ -632,10 +653,11 @@ async function trimOcrNoise(imageBuffer, ocrConfig = {}) {
     : findTextRightEdge(sample.data, width, height, channels, rowIsInTextRun, minColTextRatio, rightPadding);
   const shouldTrimLeft = left >= Number(ocrConfig.textTrimMinPixels ?? 16);
   const shouldTrimRight = width - right - 1 >= Number(ocrConfig.textTrimMinPixels ?? 16);
+  const forcedLeftTrim = Number(ocrConfig.textForcedLeftTrim ?? 0);
 
-  if (!shouldTrimBottom && !shouldTrimLeft && !shouldTrimRight) return imageBuffer;
+  if (!shouldTrimBottom && !shouldTrimLeft && !shouldTrimRight && forcedLeftTrim <= 0) return imageBuffer;
 
-  const cropLeft = shouldTrimLeft ? left : 0;
+  const cropLeft = Math.min(width - 1, Math.max(shouldTrimLeft ? left : 0, forcedLeftTrim));
   const cropRight = shouldTrimRight ? right : width - 1;
 
   return sharp(imageBuffer)
