@@ -73,6 +73,8 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const minRowDarkRatio = Number(autoConfig.edgeMinRowDarkRatio ?? minDarkRatio);
   const minColDarkRatio = Number(autoConfig.edgeMinColDarkRatio ?? minDarkRatio);
   const edgePadding = Number(autoConfig.edgePadding ?? 0);
+  const edgeHorizontalPadding = Number(autoConfig.edgeHorizontalPadding ?? edgePadding);
+  const edgeVerticalPadding = Number(autoConfig.edgeVerticalPadding ?? edgePadding);
   const minWidth = Math.max(20, Math.floor(region.width * Number(autoConfig.edgeMinWidth ?? 0.65)));
   const minHeight = Math.max(20, Math.floor(region.height * Number(autoConfig.edgeMinHeight ?? 0.45)));
   const minComponentArea = Number(autoConfig.edgeMinComponentArea ?? 5000);
@@ -92,24 +94,21 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   const channels = sample.info.channels;
   const component = findLargestDarkComponent(sample.data, width, height, channels, darkCutoff, minComponentArea);
   if (component) {
-    const verticalBounds = shrinkDarkRows(
+    const rectBounds = shrinkDarkRectangle(
       sample.data,
       width,
       channels,
       darkCutoff,
       component,
-      minRowDarkRatio
+      minRowDarkRatio,
+      minColDarkRatio
     );
-    const bounds = verticalBounds ? {
-      ...component,
-      top: verticalBounds.top,
-      bottom: verticalBounds.bottom
-    } : component;
+    const bounds = rectBounds || component;
     const refined = clampRegion({
-      x: region.x + bounds.left - edgePadding,
-      y: region.y + bounds.top - edgePadding,
-      width: bounds.right - bounds.left + 1 + edgePadding * 2,
-      height: bounds.bottom - bounds.top + 1 + edgePadding * 2
+      x: region.x + bounds.left - edgeHorizontalPadding,
+      y: region.y + bounds.top - edgeVerticalPadding,
+      width: bounds.right - bounds.left + 1 + edgeHorizontalPadding * 2,
+      height: bounds.bottom - bounds.top + 1 + edgeVerticalPadding * 2
     }, metadata);
 
     if (refined.width >= minWidth && refined.height >= minHeight) {
@@ -149,10 +148,10 @@ async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   }
 
   const refined = clampRegion({
-    x: region.x + left - edgePadding,
-    y: region.y + top - edgePadding,
-    width: right - left + 1 + edgePadding * 2,
-    height: bottom - top + 1 + edgePadding * 2
+    x: region.x + left - edgeHorizontalPadding,
+    y: region.y + top - edgeVerticalPadding,
+    width: right - left + 1 + edgeHorizontalPadding * 2,
+    height: bottom - top + 1 + edgeVerticalPadding * 2
   }, metadata);
 
   if (refined.width < minWidth || refined.height < minHeight) {
@@ -222,7 +221,7 @@ function findLargestDarkComponent(data, width, height, channels, darkCutoff, min
   return best;
 }
 
-function shrinkDarkRows(data, width, channels, darkCutoff, bounds, minRowRatio) {
+function shrinkDarkRectangle(data, width, channels, darkCutoff, bounds, minRowRatio, minColRatio) {
   const left = Math.max(0, bounds.left);
   const right = Math.min(width - 1, bounds.right);
   const top = Math.max(0, bounds.top);
@@ -243,10 +242,36 @@ function shrinkDarkRows(data, width, channels, darkCutoff, bounds, minRowRatio) 
   const localTop = findFirstIndex(rowDark, boxWidth, minRowRatio);
   const localBottom = findLastIndex(rowDark, boxWidth, minRowRatio);
   if (localTop === -1 || localBottom === -1) return null;
+  const trimmedTop = top + localTop;
+  const trimmedBottom = top + localBottom;
+  const trimmedHeight = trimmedBottom - trimmedTop + 1;
+
+  const colDark = new Uint32Array(boxWidth);
+  for (let y = trimmedTop; y <= trimmedBottom; y++) {
+    for (let x = left; x <= right; x++) {
+      const index = y * width + x;
+      if (isDarkPixel(data, index, channels, darkCutoff)) colDark[x - left]++;
+    }
+  }
+
+  const minRunWidth = Math.max(8, Math.floor(boxWidth * 0.015));
+  const localLeft = findFirstSustainedIndex(colDark, trimmedHeight, minColRatio, minRunWidth);
+  const localRight = findLastSustainedIndex(colDark, trimmedHeight, minColRatio, minRunWidth);
+  if (localLeft === -1 || localRight === -1 || localRight <= localLeft) {
+    return {
+      left,
+      right,
+      top: trimmedTop,
+      bottom: trimmedBottom,
+      area: bounds.area
+    };
+  }
 
   return {
-    top: top + localTop,
-    bottom: top + localBottom,
+    left: left + localLeft,
+    right: left + localRight,
+    top: trimmedTop,
+    bottom: trimmedBottom,
     area: bounds.area
   };
 }
@@ -270,6 +295,32 @@ function findFirstIndex(values, denominator, minRatio) {
 function findLastIndex(values, denominator, minRatio) {
   for (let i = values.length - 1; i >= 0; i--) {
     if (values[i] / denominator >= minRatio) return i;
+  }
+  return -1;
+}
+
+function findFirstSustainedIndex(values, denominator, minRatio, minRun) {
+  let runStart = -1;
+  for (let i = 0; i < values.length; i++) {
+    if (values[i] / denominator >= minRatio) {
+      if (runStart === -1) runStart = i;
+      if (i - runStart + 1 >= minRun) return runStart;
+    } else {
+      runStart = -1;
+    }
+  }
+  return -1;
+}
+
+function findLastSustainedIndex(values, denominator, minRatio, minRun) {
+  let runEnd = -1;
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i] / denominator >= minRatio) {
+      if (runEnd === -1) runEnd = i;
+      if (runEnd - i + 1 >= minRun) return runEnd;
+    } else {
+      runEnd = -1;
+    }
   }
   return -1;
 }
