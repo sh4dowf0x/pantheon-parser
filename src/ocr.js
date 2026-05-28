@@ -23,6 +23,7 @@ async function createOcr(config) {
 
 function extractLines(text) {
   return text
+    .replace(/\s+[A-Za-z]{0,2}\s*(?=\[\d{1,2}:\d{2}:\d{2}\])/g, '\n')
     .split(/\r?\n/)
     .map((line) => line.replace(/[|_=~]+/g, ' ').replace(/\s+/g, ' ').trim())
     .filter(Boolean);
@@ -63,16 +64,16 @@ function startsWithTimestamp(line) {
 }
 
 function startsNewStandaloneEvent(line) {
-  return /^(?:Failed ability cast:|[A-Z][A-Za-z0-9' -]+ dealt \d+ [A-Za-z]+ damage to |[A-Z][A-Za-z0-9' -]+ healed |[A-Z][A-Za-z0-9' -]+ was healed for |[A-Z][A-Za-z0-9' -]+'s .+ (?:missed|was fully resisted by) |[A-Z][A-Za-z0-9' -]+ dodged )/i.test(line) &&
+  return /^(?:Failed ability cast:|[A-Z][A-Za-z0-9' -]+ dealt \d+ [A-Za-z]+ damage to |[A-Z][A-Za-z0-9' -]+ healed |[A-Z][A-Za-z0-9' -]+ was healed for |[A-Z][A-Za-z0-9' -]+'s .+ (?:missed|was fully resisted by) |[A-Z][A-Za-z0-9' -]+ (?:dodged|parried) )/i.test(line) &&
     /[.)]$/.test(line);
 }
 
 function startsNewCombatFragment(line) {
-  return /^(?:Failed ability cast:|[A-Z][A-Za-z0-9' -]+ dealt \d+ [A-Za-z]+ damage to |[A-Z][A-Za-z0-9' -]+ healed |[A-Z][A-Za-z0-9' -]+ was healed for |[A-Z][A-Za-z0-9' -]+'s .+ (?:missed|was fully resisted by) |[A-Z][A-Za-z0-9' -]+ dodged )/i.test(line);
+  return /^(?:Failed ability cast:|[A-Z][A-Za-z0-9' -]+ dealt \d+ [A-Za-z]+ damage to |[A-Z][A-Za-z0-9' -]+ healed |[A-Z][A-Za-z0-9' -]+ was healed for |[A-Z][A-Za-z0-9' -]+'s .+ (?:missed|was fully resisted by) |[A-Z][A-Za-z0-9' -]+ (?:dodged|parried) )/i.test(line);
 }
 
 function looksLikeCombatFragment(line) {
-  return / dealt \d+ [A-Za-z]+ damage to | healed .+ for \d+| was healed for \d+ by | was fully resisted by | missed | dodged |Failed ability cast:/i.test(line);
+  return / dealt \d+ [A-Za-z]+ damage to | healed .+ for \d+| was healed for \d+ by | was fully resisted by | missed | dodged | parried |Failed ability cast:/i.test(line);
 }
 
 function isIncompleteCombatLine(line) {
@@ -84,7 +85,7 @@ function isIncompleteCombatLine(line) {
     / healed .+ for \d+(?: with.*)?$/i.test(line) ||
     / was healed for \d+ by .*(?: with.*)?$/i.test(line) ||
     /'s .+ (?:missed|was fully resisted by) .+$/i.test(line) ||
-    / dodged .+'s .+$/i.test(line)
+    / (?:dodged|parried) .+'s .+$/i.test(line)
   );
 }
 

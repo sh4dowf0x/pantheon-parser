@@ -190,6 +190,21 @@ function parseCombatLine(input) {
     };
   }
 
+  match = line.match(/^(.+?) parried (.+?)'s (.+?)\.$/i);
+  if (match) {
+    return {
+      eventType: 'parry',
+      source: normalizeName(match[2]),
+      target: normalizeName(match[1]),
+      ability: normalizeAbility(match[3]),
+      amount: 0,
+      damageType: null,
+      mitigated: 0,
+      isCritical: false,
+      rawMessage: line
+    };
+  }
+
   match = line.match(/^(?:Failed ability cast:|ailed ability cast:|iled ability cast:)\s*(.+?)(?:\.|$)/i);
   if (match) {
     return {
@@ -220,7 +235,7 @@ function parseCombatLine(input) {
 
 function looksLikeCombatLine(line) {
   const value = cleanLine(line);
-  return / dealt \d+ [A-Za-z]+ damage to .+ with .+(?:\.|\)|$)| healed .+ for \d+| was healed for \d+ by .+(?:\.|\)|$)| was fully resisted by | missed | dodged |^(?:Failed ability cast:|ailed ability cast:|iled ability cast:)/i.test(value);
+  return / dealt \d+ [A-Za-z]+ damage to .+ with .+(?:\.|\)|$)| healed .+ for \d+| was healed for \d+ by .+(?:\.|\)|$)| was fully resisted by | missed | dodged | parried |^(?:Failed ability cast:|ailed ability cast:|iled ability cast:)/i.test(value);
 }
 
 module.exports = {

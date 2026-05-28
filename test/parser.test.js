@@ -224,6 +224,11 @@ assert.equal(dodge.eventType, 'dodge');
 assert.equal(dodge.source, 'ashveil wasp');
 assert.equal(dodge.target, 'Nexie');
 
+const parry = parseCombatLine("Defender parried ashveil wasp's Auto Attack.");
+assert.equal(parry.eventType, 'parry');
+assert.equal(parry.source, 'ashveil wasp');
+assert.equal(parry.target, 'Defender');
+
 assert.deepEqual(
   findNewLines(['a', 'b', 'c'], ['b', 'c', 'd', 'd']),
   ['d', 'd']
@@ -295,6 +300,14 @@ assert.deepEqual(
 assert.deepEqual(
   extractLogicalLines("[17:16:24] Cleric's Talisman of Regrowth healed unusually long\nShadowfox name for 18."),
   ["[17:16:24] Cleric's Talisman of Regrowth healed unusually long Shadowfox name for 18."]
+);
+
+assert.deepEqual(
+  extractLogicalLines("[12:35:05] Defender parried ashveil wasp's Auto Attack. v [12:35:08] Defender dodged ashveil wasp's Auto Attack."),
+  [
+    "[12:35:05] Defender parried ashveil wasp's Auto Attack.",
+    "[12:35:08] Defender dodged ashveil wasp's Auto Attack."
+  ]
 );
 
 const tempDb = path.join(os.tmpdir(), `pantheon-parser-test-${process.pid}.sqlite`);
