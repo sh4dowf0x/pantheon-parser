@@ -32,6 +32,12 @@ function normalizeName(value) {
   return tokens.join(' ');
 }
 
+function stripAbilityRank(value) {
+  return String(value || '')
+    .replace(/\s+(?:I|II|III|IV|V|VI|VII|VIII|IX|X|Il|ll|1|11|1I|I1)$/i, '')
+    .trim();
+}
+
 function normalizeAbility(value) {
   const base = String(value || '');
   if (/Already Casting/i.test(base)) return 'Already Casting';
@@ -68,19 +74,18 @@ function normalizeAbility(value) {
   if (/^Auto$/i.test(ability)) return 'Auto Attack';
   if (/^Auto\b.*\bAttack$/i.test(ability)) return 'Auto Attack';
   if (/^Auto\s+tack$/i.test(ability)) return 'Auto Attack';
-  if (/^Bane of Venom(?:\s+(?:I|II|Il|ll|1|11))?$/i.test(ability)) return 'Bane of Venom II';
-  if (/^Hirode's Flame\s+(?:I|1)$/i.test(ability)) return "Hirode's Flame I";
-  if (/^Hirode's Flame(?:\s+(?:II|Il|ll|11))?$/i.test(ability)) return "Hirode's Flame II";
-  if (/^Corrupt\b.*\bBlood\b.*$/i.test(ability)) return 'Corrupt Blood I';
+  if (/^Bane of Venom(?:\s+(?:I|II|Il|ll|1|11))?$/i.test(ability)) return 'Bane of Venom';
+  if (/^Hirode's Flame(?:\s+(?:I|II|Il|ll|1|11))?$/i.test(ability)) return "Hirode's Flame";
+  if (/^Corrupt\b.*\bBlood\b.*$/i.test(ability)) return 'Corrupt Blood';
   if (/^Bleeding(?:\b.*\bEssence)?$/i.test(ability)) return 'Bleeding Essence';
-  if (/^Thresh(?:\s+(?:I|1|l|7|Fl))?$/i.test(ability)) return 'Thresh I';
-  if (/^(?:[A-Za-z0-9]{1,3}\s+){1,3}Fleshcarver(?:\s+(?:I|II|Il|ll|1|11|N))*$/i.test(ability)) return 'Fleshcarver II';
-  if (/^Fleshcarver\s+[A-Za-z0-9]{1,3}\s+(?:I|II|Il|ll|1|11)$/i.test(ability)) return 'Fleshcarver II';
-  if (/^Fleshcarver\s+(?:II|Il|ll|11)$/i.test(ability)) return 'Fleshcarver II';
+  if (/^Thresh(?:\s+(?:I|1|l|7|Fl))?$/i.test(ability)) return 'Thresh';
+  if (/^(?:[A-Za-z0-9]{1,3}\s+){1,3}Fleshcarver(?:\s+(?:I|II|Il|ll|1|11|N))*$/i.test(ability)) return 'Fleshcarver';
+  if (/^Fleshcarver\s+[A-Za-z0-9]{1,3}\s+(?:I|II|Il|ll|1|11)$/i.test(ability)) return 'Fleshcarver';
+  if (/^Fleshcarver\s+(?:II|Il|ll|11)$/i.test(ability)) return 'Fleshcarver';
   if (/^Divine\b.*\bShock$/i.test(ability)) return 'Divine Shock';
   if (/^Zealous\b.*\bStrike$/i.test(ability)) return 'Zealous Strike';
-  if (/^Corrupt\s*[-.]?\s*Blood(?:\s*[Il1])?$/i.test(ability)) return 'Corrupt Blood I';
-  return ability;
+  if (/^Corrupt\s*[-.]?\s*Blood(?:\s*[Il1])?$/i.test(ability)) return 'Corrupt Blood';
+  return stripAbilityRank(ability);
 }
 
 function parseCombatLine(input) {

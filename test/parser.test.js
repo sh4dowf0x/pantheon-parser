@@ -51,47 +51,50 @@ assert.equal(normalizeAbility('Auto Ny Attack'), 'Auto Attack');
 assert.equal(normalizeAbility('Auto 3 Attack'), 'Auto Attack');
 assert.equal(normalizeAbility('Auto Aa a Attack'), 'Auto Attack');
 assert.equal(normalizeAbility('Auto Attack. (10 mitigated) oe'), 'Auto Attack');
-assert.equal(normalizeAbility('Bane of i Venom II'), 'Bane of Venom II');
-assert.equal(normalizeAbility('Bane of Venom'), 'Bane of Venom II');
-assert.equal(normalizeAbility('Bane of Venom I'), 'Bane of Venom II');
-assert.equal(normalizeAbility('Bane of Venom Il'), 'Bane of Venom II');
-assert.equal(normalizeAbility('Bane of Venom 11'), 'Bane of Venom II');
-assert.equal(normalizeAbility("Hirode's Flame"), "Hirode's Flame II");
-assert.equal(normalizeAbility("Hirode's Flame I"), "Hirode's Flame I");
-assert.equal(normalizeAbility("Hirode's Flame Il"), "Hirode's Flame II");
-assert.equal(normalizeAbility("Hirode's Flame 11"), "Hirode's Flame II");
-assert.equal(normalizeAbility('Serpentine Strike 11'), 'Serpentine Strike II');
+assert.equal(normalizeAbility('Bane of i Venom II'), 'Bane of Venom');
+assert.equal(normalizeAbility('Bane of Venom'), 'Bane of Venom');
+assert.equal(normalizeAbility('Bane of Venom I'), 'Bane of Venom');
+assert.equal(normalizeAbility('Bane of Venom Il'), 'Bane of Venom');
+assert.equal(normalizeAbility('Bane of Venom 11'), 'Bane of Venom');
+assert.equal(normalizeAbility("Hirode's Flame"), "Hirode's Flame");
+assert.equal(normalizeAbility("Hirode's Flame I"), "Hirode's Flame");
+assert.equal(normalizeAbility("Hirode's Flame Il"), "Hirode's Flame");
+assert.equal(normalizeAbility("Hirode's Flame 11"), "Hirode's Flame");
+assert.equal(normalizeAbility('Serpentine Strike 11'), 'Serpentine Strike');
+assert.equal(normalizeAbility('Galestrike I'), 'Galestrike');
+assert.equal(normalizeAbility('Galestrike Il'), 'Galestrike');
+assert.equal(normalizeAbility('Gale Strike II'), 'Gale Strike');
 assert.equal(normalizeAbility('Thomcoat'), 'Thorncoat');
 assert.equal(normalizeAbility('Thormncoat'), 'Thorncoat');
 assert.equal(normalizeAbility('Thomncoat'), 'Thorncoat');
 assert.equal(normalizeAbility('Thorncoat'), 'Thorncoat');
-assert.equal(normalizeAbility('Mantle of Mist Il. ['), 'Mantle of Mist II');
-assert.equal(normalizeAbility('Mantle of Mist II. !'), 'Mantle of Mist II');
-assert.equal(normalizeAbility('Corrupt Blood'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt Blood I'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt - Blood I'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt Blood I. (2'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt Blood (2'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt Blood 4'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt Blood A'), 'Corrupt Blood I');
-assert.equal(normalizeAbility('Corrupt a Blood I'), 'Corrupt Blood I');
+assert.equal(normalizeAbility('Mantle of Mist Il. ['), 'Mantle of Mist');
+assert.equal(normalizeAbility('Mantle of Mist II. !'), 'Mantle of Mist');
+assert.equal(normalizeAbility('Corrupt Blood'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt Blood I'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt - Blood I'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt Blood I. (2'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt Blood (2'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt Blood 4'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt Blood A'), 'Corrupt Blood');
+assert.equal(normalizeAbility('Corrupt a Blood I'), 'Corrupt Blood');
 assert.equal(normalizeAbility(', Fleshcarver'), 'Fleshcarver');
-assert.equal(normalizeAbility('Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('N Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('Ny Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('a Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('3 Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('i Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('p 7 Fleshcarver II'), 'Fleshcarver II');
-assert.equal(normalizeAbility('Fleshcarver N II'), 'Fleshcarver II');
+assert.equal(normalizeAbility('Fleshcarver'), 'Fleshcarver');
+assert.equal(normalizeAbility('N Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('Ny Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('a Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('3 Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('i Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('p 7 Fleshcarver II'), 'Fleshcarver');
+assert.equal(normalizeAbility('Fleshcarver N II'), 'Fleshcarver');
 assert.equal(normalizeAbility('Bleeding'), 'Bleeding Essence');
 assert.equal(normalizeAbility('Bleeding N Essence'), 'Bleeding Essence');
 assert.equal(normalizeAbility('Bleeding f Essence'), 'Bleeding Essence');
 assert.equal(normalizeAbility('Bleeding i Essence'), 'Bleeding Essence');
 assert.equal(normalizeAbility('Bleeding 3 Essence'), 'Bleeding Essence');
-assert.equal(normalizeAbility('Thresh'), 'Thresh I');
-assert.equal(normalizeAbility('Thresh 7'), 'Thresh I');
-assert.equal(normalizeAbility('Thresh Fl'), 'Thresh I');
+assert.equal(normalizeAbility('Thresh'), 'Thresh');
+assert.equal(normalizeAbility('Thresh 7'), 'Thresh');
+assert.equal(normalizeAbility('Thresh Fl'), 'Thresh');
 assert.equal(normalizeAbility('Divine Sal ¥ » Shock'), 'Divine Shock');
 assert.equal(normalizeAbility('Divine Sale NW, J » Shock'), 'Divine Shock');
 assert.equal(normalizeAbility('Divine \\ Shock'), 'Divine Shock');
@@ -106,15 +109,15 @@ assert.deepEqual(
   'Druid'
 );
 assert.deepEqual(
-  inferClassFromAbilities(['Serpentine Strike II', 'Bane of Venom II']).className,
+  inferClassFromAbilities(['Serpentine Strike', 'Bane of Venom']).className,
   'Shaman'
 );
 assert.deepEqual(
-  inferClassFromAbilities(['Bane of Venom II']).className,
+  inferClassFromAbilities(['Bane of Venom']).className,
   'Shaman'
 );
 assert.deepEqual(
-  inferClassFromAbilities(['Mantle of Mist II', 'Wind Striker', 'Grip of Shale']).className,
+  inferClassFromAbilities(['Mantle of Mist', 'Wind Striker', 'Grip of Shale']).className,
   'Shaman'
 );
 assert.deepEqual(
@@ -122,7 +125,7 @@ assert.deepEqual(
   'Druid'
 );
 assert.deepEqual(
-  inferClassFromAbilities(["Hirode's Flame II"]).className,
+  inferClassFromAbilities(["Hirode's Flame"]).className,
   'Druid'
 );
 assert.deepEqual(
@@ -182,16 +185,16 @@ assert.equal(noisyAutoAttack.mitigated, 10);
 const prefixedTimestamp = parseCombatLine(". [20:22:26] Shadowfox dealt 41 Physical damage to vineweaver hatchling with Serpentine Strike Il. (10 mitigated)");
 assert.equal(prefixedTimestamp.eventType, 'damage');
 assert.equal(prefixedTimestamp.source, 'Shadowfox');
-assert.equal(prefixedTimestamp.ability, 'Serpentine Strike II');
+assert.equal(prefixedTimestamp.ability, 'Serpentine Strike');
 
 const noisyMitigated = parseCombatLine("Shadowfox dealt 40 Physical damage to gas bat nesting with Serpentine Strike II. (10 :' mitigated)");
 assert.equal(noisyMitigated.eventType, 'damage');
-assert.equal(noisyMitigated.ability, 'Serpentine Strike II');
+assert.equal(noisyMitigated.ability, 'Serpentine Strike');
 assert.equal(noisyMitigated.mitigated, 10);
 
 const noisyMitigatedTwo = parseCombatLine("Shadowfox dealt 40 Physical damage to gas bat nesting with Serpentine Strike II. (10 ) - Failed ability cast: Already Casting.");
 assert.equal(noisyMitigatedTwo.eventType, 'damage');
-assert.equal(noisyMitigatedTwo.ability, 'Serpentine Strike II');
+assert.equal(noisyMitigatedTwo.ability, 'Serpentine Strike');
 assert.equal(noisyMitigatedTwo.mitigated, 10);
 
 const noisyMitigatedThree = parseCombatLine("Bitik dealt 9 Physical damage to spine crawler with Auto Attack. (2 fe mitigated)");
@@ -210,11 +213,11 @@ assert.equal(noisyAutoAttackTwo.ability, 'Auto Attack');
 
 const noisyBane = parseCombatLine("Shadowfox dealt 14 Poison damage to spine crawler with Bane of i Venom II. (3 mitigated)");
 assert.equal(noisyBane.eventType, 'damage');
-assert.equal(noisyBane.ability, 'Bane of Venom II');
+assert.equal(noisyBane.ability, 'Bane of Venom');
 
 const unrankedBane = parseCombatLine("Shadowfox dealt 14 Poison damage to spine crawler with Bane of Venom. (3 mitigated)");
 assert.equal(unrankedBane.eventType, 'damage');
-assert.equal(unrankedBane.ability, 'Bane of Venom II');
+assert.equal(unrankedBane.ability, 'Bane of Venom');
 
 const leadingJunkName = parseCombatLine("1 Bitik dealt 10 Physical damage to gas bat nestling with Auto Attack. (2 mitigated)");
 assert.equal(leadingJunkName.eventType, 'damage');
@@ -223,6 +226,7 @@ assert.equal(leadingJunkName.source, 'Bitik');
 const leadingJunkResist = parseCombatLine("[ Shadowfox's Bane of Venom II was fully resisted by gas bat nestling.");
 assert.equal(leadingJunkResist.eventType, 'resist');
 assert.equal(leadingJunkResist.source, 'Shadowfox');
+assert.equal(leadingJunkResist.ability, 'Bane of Venom');
 
 const noisyFailedCast = parseCombatLine('Failed ability cast: Already Casting. S bw - BE BR we. NEN Ee La THAT');
 assert.equal(noisyFailedCast.eventType, 'failed_cast');
@@ -236,31 +240,31 @@ const heal = parseCombatLine('Nexie was healed for 5 by Talisman of Regrowth I.'
 assert.equal(heal.eventType, 'healing');
 assert.equal(heal.source, 'Nexie');
 assert.equal(heal.target, 'Nexie');
-assert.equal(heal.ability, 'Talisman of Regrowth I');
+assert.equal(heal.ability, 'Talisman of Regrowth');
 assert.equal(heal.amount, 5);
 
 const noisyMantleHeal = parseCombatLine('Shadowfox was healed for 4 by Mantle of Mist Il. [');
 assert.equal(noisyMantleHeal.eventType, 'healing');
 assert.equal(noisyMantleHeal.source, 'Shadowfox');
 assert.equal(noisyMantleHeal.target, 'Shadowfox');
-assert.equal(noisyMantleHeal.ability, 'Mantle of Mist II');
+assert.equal(noisyMantleHeal.ability, 'Mantle of Mist');
 assert.equal(noisyMantleHeal.amount, 4);
 
 const noisyMantleHealTwo = parseCombatLine('Shadowfox was healed for 4 by Mantle of Mist II. !');
 assert.equal(noisyMantleHealTwo.eventType, 'healing');
 assert.equal(noisyMantleHealTwo.source, 'Shadowfox');
-assert.equal(noisyMantleHealTwo.ability, 'Mantle of Mist II');
+assert.equal(noisyMantleHealTwo.ability, 'Mantle of Mist');
 
 const hirodeHeal = parseCombatLine("Shadowfox was healed for 8 by Hirode's Flame Il.");
 assert.equal(hirodeHeal.eventType, 'healing');
 assert.equal(hirodeHeal.source, 'Shadowfox');
-assert.equal(hirodeHeal.ability, "Hirode's Flame II");
+assert.equal(hirodeHeal.ability, "Hirode's Flame");
 
 const typoSelfHeal = parseCombatLine('Shadowfox was healed by 5 by Mantle of Mist II.');
 assert.equal(typoSelfHeal.eventType, 'healing');
 assert.equal(typoSelfHeal.source, 'Shadowfox');
 assert.equal(typoSelfHeal.target, 'Shadowfox');
-assert.equal(typoSelfHeal.ability, 'Mantle of Mist II');
+assert.equal(typoSelfHeal.ability, 'Mantle of Mist');
 
 const sourcedHeal = parseCombatLine('Cleric healed Shadowfox for 42 with Flash Heal.');
 assert.equal(sourcedHeal.eventType, 'healing');
@@ -278,7 +282,7 @@ assert.equal(possessiveHeal.ability, 'Regrowth');
 const resist = parseCombatLine("Nexie's Ignite I was fully resisted by vinecoil snake.");
 assert.equal(resist.eventType, 'resist');
 assert.equal(resist.source, 'Nexie');
-assert.equal(resist.ability, 'Ignite I');
+assert.equal(resist.ability, 'Ignite');
 assert.equal(resist.target, 'vinecoil snake');
 
 const miss = parseCombatLine("vinecoil snake's Auto Attack missed Nexie.");
@@ -426,3 +430,4 @@ try {
 }
 
 console.log('parser tests passed');
+
