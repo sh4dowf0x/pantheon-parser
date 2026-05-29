@@ -3,7 +3,9 @@ const state = {
   sourceMode: 'players',
   metric: 'damage',
   selectedSource: null,
-  lastData: null
+  lastData: null,
+  petAssignments: loadPetAssignments(),
+  petMenuSource: null
 };
 
 const els = {
@@ -41,7 +43,13 @@ const els = {
   settingDetection: document.querySelector('#setting-detection'),
   settingEvents: document.querySelector('#setting-events'),
   settingError: document.querySelector('#setting-error'),
-  rescanButton: document.querySelector('#rescan-button')
+  rescanButton: document.querySelector('#rescan-button'),
+  petMenuBackdrop: document.querySelector('#pet-menu-backdrop'),
+  petMenu: document.querySelector('#pet-menu'),
+  petMenuTitle: document.querySelector('#pet-menu-title'),
+  petOwnerSelect: document.querySelector('#pet-owner-select'),
+  petAssignButton: document.querySelector('#pet-assign-button'),
+  petUnassignButton: document.querySelector('#pet-unassign-button')
 };
 
 const CLASS_COLORS = {
@@ -83,6 +91,68 @@ function formatDuration(seconds) {
 function formatTime(value) {
   if (!value) return '-';
   return new Date(value).toLocaleTimeString();
+}
+
+function loadPetAssignments() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('pantheon.petAssignments') || '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return Object.fromEntries(Object.entries(parsed)
+      .filter(([pet, owner]) => typeof pet === 'string' && typeof owner === 'string' && pet && owner && pet !== owner));
+  } catch {
+    return {};
+  }
+}
+
+function savePetAssignments() {
+  localStorage.setItem('pantheon.petAssignments', JSON.stringify(state.petAssignments));
+}
+
+function addNumericFields(target, source) {
+  for (const key of ['total', 'damage', 'healing', 'damageTaken', 'mitigatedTaken', 'events', 'hits', 'incomingEvents', 'mitigated', 'crits']) {
+    target[key] = Number(target[key] || 0) + Number(source[key] || 0);
+  }
+}
+
+function combineAssignedPets(rows) {
+  const clones = rows.map((row) => ({
+    ...row,
+    abilities: [...(row.abilities || [])],
+    assignedPets: []
+  }));
+  const bySource = new Map(clones.map((row) => [row.source, row]));
+  const hidden = new Set();
+
+  for (const [pet, owner] of Object.entries(state.petAssignments)) {
+    const petRow = bySource.get(pet);
+    const ownerRow = bySource.get(owner);
+    if (!petRow || !ownerRow || pet === owner) continue;
+
+    addNumericFields(ownerRow, petRow);
+    ownerRow.abilities = [...new Set([...(ownerRow.abilities || []), ...(petRow.abilities || [])])];
+    ownerRow.assignedPets.push(pet);
+    hidden.add(pet);
+  }
+
+  return clones
+    .filter((row) => !hidden.has(row.source))
+    .map((row) => ({
+      ...row,
+      rate: state.lastData && state.lastData.durationSeconds
+        ? Number((Number(row.total || 0) / state.lastData.durationSeconds).toFixed(2))
+        : Number(row.rate || 0),
+      dps: state.metric === 'damage' && state.lastData && state.lastData.durationSeconds
+        ? Number((Number(row.total || 0) / state.lastData.durationSeconds).toFixed(2))
+        : Number(row.dps || 0),
+      hps: state.metric === 'healing' && state.lastData && state.lastData.durationSeconds
+        ? Number((Number(row.total || 0) / state.lastData.durationSeconds).toFixed(2))
+        : Number(row.hps || 0)
+    }))
+    .sort((a, b) => (b.total - a.total) || (b.events - a.events));
+}
+
+function getDisplayRows(data = state.lastData) {
+  return combineAssignedPets((data && data.combatants) || []);
 }
 
 function setStatus(message, isError = false) {
@@ -178,7 +248,7 @@ function renderMetrics(data) {
 }
 
 function renderCombatants(data) {
-  const rows = data.combatants || [];
+  const rows = getDisplayRows(data);
   const isHealing = state.metric === 'healing';
   els.tableTitle.textContent = isHealing ? 'Healing Done' : 'Damage Done';
   els.amountHeading.textContent = isHealing ? 'Healing' : 'Damage';
@@ -211,6 +281,9 @@ function renderCombatants(data) {
     const sourceTitle = row.sourceKind === 'ability'
       ? `${row.source} (healing spell; caster not exposed in this log line)`
       : row.source;
+    const petText = row.assignedPets && row.assignedPets.length
+      ? `<span class="source-kind" title="${escapeHtml(row.assignedPets.join(', '))}">+${row.assignedPets.length} pet${row.assignedPets.length === 1 ? '' : 's'}</span>`
+      : '';
     const classTitle = row.classMatchedAbilities && row.classMatchedAbilities.length
       ? `${row.className}: ${row.classMatchedAbilities.join(', ')}`
       : 'Not enough class-specific abilities yet';
@@ -218,6 +291,7 @@ function renderCombatants(data) {
       <td class="name" title="${escapeHtml(sourceTitle)}">
         ${escapeHtml(row.source)}
         ${row.sourceKind === 'ability' ? '<span class="source-kind">ability</span>' : ''}
+        ${petText}
       </td>
       <td class="class-cell" title="${escapeHtml(classTitle)}">
         <span class="class-badge confidence-${getConfidenceLevel(row.classConfidence)}">${escapeHtml(row.className || 'Unknown')}</span>
@@ -231,11 +305,49 @@ function renderCombatants(data) {
       <td class="number">${isHealing ? '-' : formatNumber(row.mitigatedTaken)}</td>
     `;
     tr.addEventListener('click', () => selectSource(row.source));
+    tr.addEventListener('contextmenu', (event) => openPetMenu(event, row.source));
     tr.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') selectSource(row.source);
     });
     return tr;
   }));
+}
+
+function openPetMenu(event, source) {
+  if (!state.lastData) return;
+  event.preventDefault();
+  state.petMenuSource = source;
+  const rawRows = state.lastData.combatants || [];
+  const ownerCandidates = rawRows
+    .map((row) => row.source)
+    .filter((owner) => owner && owner !== source && state.petAssignments[owner] !== source)
+    .sort((a, b) => a.localeCompare(b));
+
+  els.petMenuTitle.textContent = source;
+  els.petOwnerSelect.replaceChildren(...ownerCandidates.map((owner) => {
+    const option = document.createElement('option');
+    option.value = owner;
+    option.textContent = owner;
+    return option;
+  }));
+  els.petOwnerSelect.value = state.petAssignments[source] || ownerCandidates[0] || '';
+  els.petAssignButton.disabled = ownerCandidates.length === 0;
+  els.petUnassignButton.disabled = !state.petAssignments[source];
+
+  const width = 220;
+  const height = 132;
+  const left = Math.min(event.clientX, window.innerWidth - width - 8);
+  const top = Math.min(event.clientY, window.innerHeight - height - 8);
+  els.petMenu.style.left = `${Math.max(8, left)}px`;
+  els.petMenu.style.top = `${Math.max(8, top)}px`;
+  els.petMenuBackdrop.hidden = false;
+  els.petMenu.hidden = false;
+}
+
+function closePetMenu() {
+  state.petMenuSource = null;
+  els.petMenuBackdrop.hidden = true;
+  els.petMenu.hidden = true;
 }
 
 function getClassColor(className) {
@@ -279,7 +391,9 @@ async function renderBreakdown(rows) {
   }
 
   els.detailTitle.textContent = state.selectedSource;
-  els.detailSubtitle.textContent = `${rows.length} abilit${rows.length === 1 ? 'y' : 'ies'}`;
+  const selectedRow = getDisplayRows().find((row) => row.source === state.selectedSource);
+  const petCount = selectedRow && selectedRow.assignedPets ? selectedRow.assignedPets.length : 0;
+  els.detailSubtitle.textContent = `${rows.length} abilit${rows.length === 1 ? 'y' : 'ies'}${petCount ? `, ${petCount} pet${petCount === 1 ? '' : 's'}` : ''}`;
 
   if (!rows.length) {
     els.breakdown.className = 'breakdown empty';
@@ -327,13 +441,37 @@ async function loadBreakdown() {
     return;
   }
 
-  const params = new URLSearchParams({
-    window: String(state.windowSeconds),
-    metric: state.metric,
-    source: state.selectedSource
-  });
-  const data = await fetchJson(`/api/breakdown?${params}`);
-  await renderBreakdown(data.rows || []);
+  const selectedRow = getDisplayRows().find((row) => row.source === state.selectedSource);
+  const sources = [state.selectedSource, ...((selectedRow && selectedRow.assignedPets) || [])];
+  const results = await Promise.all(sources.map((source) => {
+    const params = new URLSearchParams({
+      window: String(state.windowSeconds),
+      metric: state.metric,
+      source
+    });
+    return fetchJson(`/api/breakdown?${params}`);
+  }));
+
+  const grouped = new Map();
+  for (const result of results) {
+    for (const row of result.rows || []) {
+      const key = `${row.ability}\u0000${row.damageType || ''}`;
+      const current = grouped.get(key) || {
+        ...row,
+        total: 0,
+        damage: 0,
+        healing: 0,
+        events: 0,
+        hits: 0,
+        mitigated: 0,
+        crits: 0
+      };
+      addNumericFields(current, row);
+      grouped.set(key, current);
+    }
+  }
+
+  await renderBreakdown([...grouped.values()].sort((a, b) => (b.total - a.total) || (b.events - a.events)));
 }
 
 async function refresh() {
@@ -409,6 +547,26 @@ els.resetButton.addEventListener('click', async () => {
 els.settingsButton.addEventListener('click', openSettings);
 els.settingsClose.addEventListener('click', closeSettings);
 els.settingsBackdrop.addEventListener('click', closeSettings);
+els.petMenuBackdrop.addEventListener('click', closePetMenu);
+
+els.petAssignButton.addEventListener('click', async () => {
+  const source = state.petMenuSource;
+  const owner = els.petOwnerSelect.value;
+  if (!source || !owner || source === owner) return;
+  state.petAssignments[source] = owner;
+  savePetAssignments();
+  closePetMenu();
+  await refresh();
+});
+
+els.petUnassignButton.addEventListener('click', async () => {
+  const source = state.petMenuSource;
+  if (!source) return;
+  delete state.petAssignments[source];
+  savePetAssignments();
+  closePetMenu();
+  await refresh();
+});
 
 els.settingPaused.addEventListener('change', async () => {
   try {
