@@ -93,9 +93,13 @@ const CLASS_RULES = [
   {
     className: 'Pet',
     abilities: [
+      'Blast of Magic',
       'Claw',
       'Gale Strike',
       'Galestrike',
+      'Mana Burst',
+      'Mana Flame',
+      'Mana Spike',
       'Thresh',
       'Thrash',
       'Wind Blade'

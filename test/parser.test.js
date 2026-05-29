@@ -133,6 +133,10 @@ assert.deepEqual(
   'Pet'
 );
 assert.deepEqual(
+  inferClassFromAbilities(['Mana Flame', 'Mana Spike', 'Mana Burst', 'Blast of Magic']).className,
+  'Pet'
+);
+assert.deepEqual(
   inferClassFromAbilities(['Celestial Light II']).className,
   'Cleric'
 );
