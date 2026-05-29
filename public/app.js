@@ -41,6 +41,7 @@ const CLASS_COLORS = {
   Enchanter: '#8175c7',
   Necromancer: '#37a383',
   Summoner: '#bc35dd',
+  'Summoner Pet': '#bc35dd',
   Wizard: '#31c5c5',
   Ranger: '#93c95a',
   Monk: '#00d48a',
