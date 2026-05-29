@@ -6,24 +6,12 @@ Experimental OCR combat parser for Pantheon.
 
 ```powershell
 npm install
-npm run once
-```
-
-`npm run once` captures the configured screen region, saves `data/last-capture.png`, OCRs it, parses combat-looking lines, and writes events to `data/pantheon-events.sqlite`.
-
-For a debug capture that does not write to the database:
-
-```powershell
-npm run debug:capture
-```
-
-For the normal combined app, which starts both live parsing and the dashboard:
-
-```powershell
 npm start
 ```
 
-Or double-click:
+`npm start` launches the combined app: live OCR parsing, the dashboard web server, and the optional capture overlay.
+
+You can also double-click:
 
 ```text
 StartPantheonParser.bat
@@ -57,39 +45,9 @@ The dashboard refreshes every 2 seconds and includes Damage/Healing, time range,
 
 Use the Settings button in the dashboard to pause/resume parsing, show or hide the cyan capture overlay, change the capture interval, force a combat-log rescan, and inspect the current capture rectangle.
 
-For a one-shot region/OCR test, double-click:
-
-```text
-DebugCapture.bat
-```
-
-To capture the whole Pantheon window with a grid for region tuning:
-
-```text
-CalibrateCapture.bat
-```
-
-To select the exact combat-log rectangle with the mouse:
-
-```text
-SelectCaptureRegion.bat
-```
-
 The default capture mode is `autoCombatLog`, which targets the lower-right combat-log rectangle as a fixed ratio of the Pantheon client area.
 
-To clear generated debug images/text:
-
-```text
-CleanDebugImages.bat
-```
-
-If you have multiple Pantheon clients open, the parser asks which one to use when it starts. You can also double-click:
-
-```text
-ListPantheonWindows.bat
-```
-
-Then copy the desired `Id` into `config.json` as `processId`.
+If you have multiple Pantheon clients open, the parser asks which one to use when it starts.
 
 Or pass it for one run:
 
@@ -162,4 +120,4 @@ If OCR keeps seeing the same visible combat-log lines across multiple captures, 
 ```
 
 `ttlMs` is how long a recognized combat line is remembered before an identical line can be inserted again.
-When `ignoreInitialVisibleLines` is true, live mode treats the combat lines already visible at startup as backlog and waits for new lines before inserting events. `npm run once` still parses the current visible lines for debugging.
+When `ignoreInitialVisibleLines` is true, live mode treats the combat lines already visible at startup as backlog and waits for new lines before inserting events. `npm run debug:capture` still parses the current visible lines for debugging without writing them to the database.
