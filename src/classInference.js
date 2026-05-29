@@ -134,7 +134,20 @@ function scoreClass(abilities, rule) {
   };
 }
 
+function isUnnamedMobName(value) {
+  const name = String(value || '').trim();
+  return /[a-z]/.test(name) && !/[A-Z0-9]/.test(name) && /^[a-z][a-z' -]*$/.test(name);
+}
+
 function inferClassFromAbilities(abilities, options = {}) {
+  if (isUnnamedMobName(options.sourceName)) {
+    return {
+      className: 'Mob',
+      confidence: 1,
+      matchedAbilities: ['lowercase name']
+    };
+  }
+
   const allAbilities = (abilities || [])
     .map((ability) => normalizeAbility(ability))
     .filter(Boolean);
@@ -171,5 +184,6 @@ function inferClassFromAbilities(abilities, options = {}) {
 
 module.exports = {
   baseAbilityName,
+  isUnnamedMobName,
   inferClassFromAbilities
 };

@@ -59,6 +59,7 @@ const CLASS_COLORS = {
   Ranger: '#93c95a',
   Monk: '#00d48a',
   Rogue: '#efcc49',
+  Mob: '#6f7a86',
   Pet: '#8a98a8',
   Unknown: '#8a98a8'
 };

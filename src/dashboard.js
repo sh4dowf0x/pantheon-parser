@@ -220,7 +220,7 @@ function getDashboardData(db, seconds, sourceMode, metric) {
       const abilities = [...row.abilities];
       const classGuess = inferClassFromAbilities(
         abilities.concat(metricConfig.metric === 'healing' ? [row.source] : []),
-        { eventCount: row.events }
+        { eventCount: row.events, sourceName: row.source }
       );
       return {
         ...row,

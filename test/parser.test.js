@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { findNewLines, fingerprintLine, RecentLineCache } = require('../src/dedupe');
 const { normalizeAbility, normalizeName, parseCombatLine } = require('../src/combatParser');
-const { inferClassFromAbilities } = require('../src/classInference');
+const { inferClassFromAbilities, isUnnamedMobName } = require('../src/classInference');
 const { extractLogicalLines } = require('../src/ocr');
 const { ensureCombatEventsSchema, openStore } = require('../src/store');
 const { DatabaseSync } = require('node:sqlite');
@@ -175,6 +175,14 @@ assert.deepEqual(
 assert.deepEqual(
   inferClassFromAbilities(['Auto Attack'], { eventCount: 5 }).className,
   'Pet'
+);
+assert.equal(isUnnamedMobName('brineclaw mireguard'), true);
+assert.equal(isUnnamedMobName('vinecoil snake'), true);
+assert.equal(isUnnamedMobName('Shadowfox'), false);
+assert.equal(isUnnamedMobName('Bitik'), false);
+assert.deepEqual(
+  inferClassFromAbilities(['Auto Attack'], { eventCount: 50, sourceName: 'brineclaw mireguard' }).className,
+  'Mob'
 );
 
 const noisyAutoAttack = parseCombatLine('Shadowfox dealt 41 Physical damage to vineweaver hatchling with Auto ; Attack. (10 mitigated) k -');
