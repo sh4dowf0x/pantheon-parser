@@ -28,7 +28,20 @@ const els = {
   breakdown: document.querySelector('#breakdown'),
   eventsList: document.querySelector('#events-list'),
   lastUpdated: document.querySelector('#last-updated'),
-  resetButton: document.querySelector('#reset-button')
+  resetButton: document.querySelector('#reset-button'),
+  settingsButton: document.querySelector('#settings-button'),
+  settingsClose: document.querySelector('#settings-close'),
+  settingsBackdrop: document.querySelector('#settings-backdrop'),
+  settingsDrawer: document.querySelector('#settings-drawer'),
+  settingPaused: document.querySelector('#setting-paused'),
+  settingOverlay: document.querySelector('#setting-overlay'),
+  settingInterval: document.querySelector('#setting-interval'),
+  settingRegion: document.querySelector('#setting-region'),
+  settingWindow: document.querySelector('#setting-window'),
+  settingDetection: document.querySelector('#setting-detection'),
+  settingEvents: document.querySelector('#setting-events'),
+  settingError: document.querySelector('#setting-error'),
+  rescanButton: document.querySelector('#rescan-button')
 };
 
 const CLASS_COLORS = {
@@ -82,16 +95,74 @@ async function fetchJson(url) {
   return response.json();
 }
 
-async function postJson(url) {
+async function postJson(url, body = null) {
   const response = await fetch(url, {
     method: 'POST',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    body: body ? JSON.stringify(body) : undefined
   });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.json();
+}
+
+function renderSettings(settings) {
+  if (!settings || !settings.available) {
+    els.settingError.textContent = 'Parser controls are unavailable in dashboard-only mode.';
+    return;
+  }
+
+  els.settingError.textContent = settings.lastError ? `Parser error: ${settings.lastError}` : '';
+  els.settingPaused.checked = settings.paused === true;
+  els.settingOverlay.checked = settings.overlayEnabled === true;
+  els.settingInterval.value = String(settings.intervalMs || 250);
+  els.settingEvents.textContent = formatNumber(settings.totalInserted);
+
+  const region = settings.lastCapture && settings.lastCapture.region;
+  els.settingRegion.textContent = region
+    ? `${region.width}x${region.height} at ${region.x}, ${region.y}`
+    : '-';
+
+  const windowInfo = settings.lastCapture && settings.lastCapture.window;
+  els.settingWindow.textContent = windowInfo
+    ? `PID ${windowInfo.id}, ${windowInfo.width}x${windowInfo.height}`
+    : '-';
+
+  const detection = settings.lastCapture && settings.lastCapture.detection;
+  els.settingDetection.textContent = detection
+    ? detection.strategy || (detection.refinement && detection.refinement.strategy) || '-'
+    : '-';
+}
+
+async function loadSettings() {
+  const settings = await fetchJson('/api/settings');
+  renderSettings(settings);
+  return settings;
+}
+
+async function saveSettings(patch) {
+  const settings = await postJson('/api/settings', patch);
+  renderSettings(settings);
+  return settings;
+}
+
+async function openSettings() {
+  els.settingsBackdrop.hidden = false;
+  els.settingsDrawer.classList.add('open');
+  els.settingsDrawer.setAttribute('aria-hidden', 'false');
+  try {
+    await loadSettings();
+  } catch (error) {
+    els.settingError.textContent = `Settings unavailable: ${error.message}`;
+  }
+}
+
+function closeSettings() {
+  els.settingsBackdrop.hidden = true;
+  els.settingsDrawer.classList.remove('open');
+  els.settingsDrawer.setAttribute('aria-hidden', 'true');
 }
 
 function renderMetrics(data) {
@@ -277,6 +348,9 @@ async function refresh() {
     renderCombatants(data);
     renderEvents(data);
     await loadBreakdown();
+    if (els.settingsDrawer.classList.contains('open')) {
+      await loadSettings();
+    }
     setStatus(data.lastSeen ? `Reading ${formatTime(data.firstSeen)} to ${formatTime(data.lastSeen)}` : 'Waiting for parser data');
   } catch (error) {
     setStatus(`Dashboard error: ${error.message}`, true);
@@ -328,6 +402,47 @@ els.resetButton.addEventListener('click', async () => {
   } finally {
     els.resetButton.disabled = false;
     els.resetButton.textContent = previousText;
+  }
+});
+
+els.settingsButton.addEventListener('click', openSettings);
+els.settingsClose.addEventListener('click', closeSettings);
+els.settingsBackdrop.addEventListener('click', closeSettings);
+
+els.settingPaused.addEventListener('change', async () => {
+  try {
+    await saveSettings({ paused: els.settingPaused.checked });
+  } catch (error) {
+    els.settingError.textContent = `Pause update failed: ${error.message}`;
+  }
+});
+
+els.settingOverlay.addEventListener('change', async () => {
+  try {
+    await saveSettings({ overlayEnabled: els.settingOverlay.checked });
+  } catch (error) {
+    els.settingError.textContent = `Overlay update failed: ${error.message}`;
+  }
+});
+
+els.settingInterval.addEventListener('change', async () => {
+  try {
+    await saveSettings({ intervalMs: Number(els.settingInterval.value) });
+  } catch (error) {
+    els.settingError.textContent = `Interval update failed: ${error.message}`;
+  }
+});
+
+els.rescanButton.addEventListener('click', async () => {
+  els.rescanButton.disabled = true;
+  try {
+    await postJson('/api/parser/rescan');
+    await loadSettings();
+    setStatus('Capture region will rescan on the next parser pass.');
+  } catch (error) {
+    els.settingError.textContent = `Rescan failed: ${error.message}`;
+  } finally {
+    els.rescanButton.disabled = false;
   }
 });
 

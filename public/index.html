@@ -27,6 +27,7 @@
           <button class="source-button active" type="button" data-source-mode="players">Players</button>
           <button class="source-button" type="button" data-source-mode="all">All</button>
         </div>
+        <button id="settings-button" class="settings-button" type="button">Settings</button>
         <button id="reset-button" class="reset-button" type="button">Reset</button>
       </header>
 
@@ -107,6 +108,57 @@
         <div id="events-list" class="events-list"></div>
       </section>
     </main>
+
+    <div id="settings-backdrop" class="settings-backdrop" hidden></div>
+    <aside id="settings-drawer" class="settings-drawer" aria-label="Settings" aria-hidden="true">
+      <div class="settings-head">
+        <h2>Settings</h2>
+        <button id="settings-close" class="settings-close" type="button">Close</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>Parser</h3>
+        <label class="setting-row">
+          <span>Paused</span>
+          <input id="setting-paused" type="checkbox">
+        </label>
+        <label class="setting-row">
+          <span>Cyan overlay</span>
+          <input id="setting-overlay" type="checkbox">
+        </label>
+        <label class="setting-stack">
+          <span>Capture interval</span>
+          <div class="input-with-unit">
+            <input id="setting-interval" type="number" min="50" max="5000" step="50">
+            <span>ms</span>
+          </div>
+        </label>
+        <button id="rescan-button" class="secondary-button" type="button">Force Capture Rescan</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>Current Capture</h3>
+        <dl class="settings-facts">
+          <div>
+            <dt>Region</dt>
+            <dd id="setting-region">-</dd>
+          </div>
+          <div>
+            <dt>Window</dt>
+            <dd id="setting-window">-</dd>
+          </div>
+          <div>
+            <dt>Detection</dt>
+            <dd id="setting-detection">-</dd>
+          </div>
+          <div>
+            <dt>Events</dt>
+            <dd id="setting-events">0</dd>
+          </div>
+        </dl>
+        <p id="setting-error" class="settings-error"></p>
+      </div>
+    </aside>
 
     <script src="/app.js"></script>
   </body>

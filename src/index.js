@@ -154,6 +154,16 @@ async function runParser(options = {}) {
   let lastStatusAt = 0;
   let totalInserted = 0;
   let isFirstCapture = true;
+  const control = options.control || {};
+  control.intervalMs = Number(control.intervalMs || config.intervalMs || 750);
+  control.paused = control.paused === true;
+  control.totalInserted = totalInserted;
+  control.lastError = null;
+  control.startedAt = control.startedAt || new Date().toISOString();
+  control.resetCaptureRegion = () => {
+    clearCachedWindow();
+    control.rescanRequested = true;
+  };
 
   console.log('Pantheon OCR parser started.');
   console.log(`Config: ${fs.existsSync(args.configPath) ? args.configPath : 'config.example.json'}`);
@@ -169,12 +179,31 @@ async function runParser(options = {}) {
   }
 
   while (!stopping && !(options.shouldStop && options.shouldStop())) {
+    if (control.paused) {
+      await sleep(250);
+      continue;
+    }
+
     const observedAt = new Date().toISOString();
     try {
+      if (control.rescanRequested) {
+        clearCachedWindow();
+        previousVisibleLines = [];
+        isFirstCapture = true;
+        control.rescanRequested = false;
+      }
+
       const capture = await captureRegion(config, {
         debugImagePath: args.debug ? path.resolve(process.cwd(), config.debugImagePath || 'data/last-capture.png') : null
       });
       writeCaptureRegion(config, capture, observedAt);
+      control.lastCapture = {
+        observedAt,
+        screen: capture.screen,
+        window: capture.window,
+        region: capture.region,
+        detection: capture.detection
+      };
 
       const text = await ocr.recognize(capture.image);
       const debugConfig = config.debug || {};
@@ -227,8 +256,10 @@ async function runParser(options = {}) {
         if (!args.dryRun) {
           if (store.insertEvent(event)) totalInserted++;
         }
+        control.totalInserted = totalInserted;
         console.log(`[${new Date(observedAt).toLocaleTimeString()}] ${event.rawMessage}`);
       }
+      control.lastError = null;
 
       const now = Date.now();
       if (!args.once && config.statusEveryMs !== 0 && now - lastStatusAt >= (config.statusEveryMs || 10000)) {
@@ -253,11 +284,12 @@ async function runParser(options = {}) {
 
       if (args.once) break;
     } catch (error) {
+      control.lastError = error.message;
       console.error(`Capture/OCR failed: ${error.message}`);
       if (args.once) break;
     }
 
-    await sleep(config.intervalMs || 750);
+    await sleep(Math.max(50, Number(control.intervalMs || config.intervalMs || 750)));
   }
 
   const summary = args.dryRun ? [] : store.recentSummary(300);

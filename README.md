@@ -55,6 +55,8 @@ StartPantheonDashboard.bat
 
 The dashboard refreshes every 2 seconds and includes Damage/Healing, time range, and Players/All source filters.
 
+Use the Settings button in the dashboard to pause/resume parsing, show or hide the cyan capture overlay, change the capture interval, force a combat-log rescan, and inspect the current capture rectangle.
+
 For a one-shot region/OCR test, double-click:
 
 ```text

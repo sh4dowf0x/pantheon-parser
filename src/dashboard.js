@@ -374,10 +374,112 @@ function sendFile(res, filePath) {
   });
 }
 
-function createServer(db) {
+function getControlSnapshot(control) {
+  if (!control) {
+    return {
+      available: false
+    };
+  }
+
+  return {
+    available: true,
+    intervalMs: Number(control.intervalMs || 0),
+    paused: control.paused === true,
+    overlayEnabled: control.overlayEnabled === true,
+    overlayPid: control.overlayPid || null,
+    totalInserted: Number(control.totalInserted || 0),
+    startedAt: control.startedAt || null,
+    lastError: control.lastError || null,
+    lastCapture: control.lastCapture || null
+  };
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 1024 * 1024) {
+        reject(new Error('Request body too large'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => {
+      if (!body.trim()) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(body));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function createServer(db, options = {}) {
+  const control = options.control || null;
   return http.createServer((req, res) => {
-    try {
+    Promise.resolve().then(async () => {
       const url = new URL(req.url, 'http://localhost');
+      if (url.pathname === '/api/settings') {
+        if (req.method === 'GET') {
+          sendJson(res, 200, getControlSnapshot(control));
+          return;
+        }
+
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Use GET or POST' });
+          return;
+        }
+
+        if (!control) {
+          sendJson(res, 409, { error: 'Parser controls are not available in dashboard-only mode' });
+          return;
+        }
+
+        const body = await readJsonBody(req);
+        if (body.intervalMs !== undefined) {
+          const intervalMs = Math.round(Number(body.intervalMs));
+          if (!Number.isFinite(intervalMs) || intervalMs < 50 || intervalMs > 5000) {
+            sendJson(res, 400, { error: 'intervalMs must be between 50 and 5000' });
+            return;
+          }
+          control.intervalMs = intervalMs;
+        }
+
+        if (body.paused !== undefined) {
+          control.paused = body.paused === true;
+        }
+
+        if (body.overlayEnabled !== undefined) {
+          if (typeof control.setOverlayEnabled !== 'function') {
+            sendJson(res, 409, { error: 'Overlay control is not available' });
+            return;
+          }
+          await control.setOverlayEnabled(body.overlayEnabled === true);
+        }
+
+        sendJson(res, 200, getControlSnapshot(control));
+        return;
+      }
+
+      if (url.pathname === '/api/parser/rescan') {
+        if (req.method !== 'POST') {
+          sendJson(res, 405, { error: 'Use POST' });
+          return;
+        }
+        if (!control || typeof control.resetCaptureRegion !== 'function') {
+          sendJson(res, 409, { error: 'Parser controls are not available' });
+          return;
+        }
+        control.resetCaptureRegion();
+        sendJson(res, 200, { ok: true, settings: getControlSnapshot(control) });
+        return;
+      }
+
       if (url.pathname === '/api/reset') {
         if (req.method !== 'POST') {
           sendJson(res, 405, { error: 'Use POST' });
@@ -426,16 +528,16 @@ function createServer(db) {
       }
 
       sendFile(res, filePath);
-    } catch (error) {
+    }).catch((error) => {
       sendJson(res, 500, { error: error.message });
-    }
+    });
   });
 }
 
 function startDashboard(options = {}) {
   const args = options.args || parseArgs(options.argv || process.argv);
   const db = openDatabase(args.databasePath);
-  const server = createServer(db);
+  const server = createServer(db, { control: options.control || null });
 
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
