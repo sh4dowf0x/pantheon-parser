@@ -6,7 +6,8 @@ const { findNewLines, fingerprintLine, RecentLineCache } = require('../src/dedup
 const { normalizeAbility, normalizeName, parseCombatLine } = require('../src/combatParser');
 const { inferClassFromAbilities } = require('../src/classInference');
 const { extractLogicalLines } = require('../src/ocr');
-const { openStore } = require('../src/store');
+const { ensureCombatEventsSchema, openStore } = require('../src/store');
+const { DatabaseSync } = require('node:sqlite');
 
 const damage = parseCombatLine('Nexie dealt 7 Physical damage to vinecoil snake with Auto Attack. (1 mitigated) (Critical)');
 assert.equal(damage.eventType, 'damage');
@@ -400,6 +401,21 @@ try {
   store.close();
 } finally {
   fs.rmSync(tempDb, { force: true });
+}
+
+const legacyDb = path.join(os.tmpdir(), `pantheon-parser-legacy-test-${process.pid}.sqlite`);
+try {
+  fs.rmSync(legacyDb, { force: true });
+  const db = new DatabaseSync(legacyDb);
+  db.exec('CREATE TABLE combat_events (id INTEGER PRIMARY KEY AUTOINCREMENT, observed_at TEXT NOT NULL, event_type TEXT NOT NULL, source TEXT, amount INTEGER NOT NULL DEFAULT 0, raw_message TEXT NOT NULL)');
+  ensureCombatEventsSchema(db);
+  const columns = db.prepare('PRAGMA table_info(combat_events)').all().map((column) => column.name);
+  for (const column of ['target', 'ability', 'damage_type', 'mitigated', 'is_critical', 'event_key']) {
+    assert.ok(columns.includes(column), `expected migrated column ${column}`);
+  }
+  db.close();
+} finally {
+  fs.rmSync(legacyDb, { force: true });
 }
 
 console.log('parser tests passed');

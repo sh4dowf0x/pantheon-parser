@@ -2,10 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-function openStore(databasePath) {
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-  const db = new DatabaseSync(databasePath);
-
+function ensureCombatEventsSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS combat_events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,8 +28,25 @@ function openStore(databasePath) {
   `);
 
   const columns = db.prepare('PRAGMA table_info(combat_events)').all();
-  if (!columns.some((column) => column.name === 'event_key')) {
-    db.exec('ALTER TABLE combat_events ADD COLUMN event_key TEXT');
+  const columnNames = new Set(columns.map((column) => column.name));
+  const migrations = [
+    ['observed_at', "ALTER TABLE combat_events ADD COLUMN observed_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z'"],
+    ['event_type', "ALTER TABLE combat_events ADD COLUMN event_type TEXT NOT NULL DEFAULT 'unknown'"],
+    ['source', 'ALTER TABLE combat_events ADD COLUMN source TEXT'],
+    ['target', 'ALTER TABLE combat_events ADD COLUMN target TEXT'],
+    ['ability', 'ALTER TABLE combat_events ADD COLUMN ability TEXT'],
+    ['amount', 'ALTER TABLE combat_events ADD COLUMN amount INTEGER NOT NULL DEFAULT 0'],
+    ['damage_type', 'ALTER TABLE combat_events ADD COLUMN damage_type TEXT'],
+    ['mitigated', 'ALTER TABLE combat_events ADD COLUMN mitigated INTEGER NOT NULL DEFAULT 0'],
+    ['is_critical', 'ALTER TABLE combat_events ADD COLUMN is_critical INTEGER NOT NULL DEFAULT 0'],
+    ['event_key', 'ALTER TABLE combat_events ADD COLUMN event_key TEXT'],
+    ['raw_message', "ALTER TABLE combat_events ADD COLUMN raw_message TEXT NOT NULL DEFAULT ''"]
+  ];
+
+  for (const [name, sql] of migrations) {
+    if (!columnNames.has(name)) {
+      db.exec(sql);
+    }
   }
 
   db.exec(`
@@ -40,6 +54,12 @@ function openStore(databasePath) {
       ON combat_events(event_key)
       WHERE event_key IS NOT NULL;
   `);
+}
+
+function openStore(databasePath) {
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  const db = new DatabaseSync(databasePath);
+  ensureCombatEventsSchema(db);
 
   const insert = db.prepare(`
     INSERT INTO combat_events (
@@ -99,5 +119,6 @@ function openStore(databasePath) {
 }
 
 module.exports = {
+  ensureCombatEventsSchema,
   openStore
 };

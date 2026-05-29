@@ -5,6 +5,7 @@ const { URL } = require('node:url');
 const { DatabaseSync } = require('node:sqlite');
 const { normalizeAbility, normalizeName } = require('./combatParser');
 const { inferClassFromAbilities } = require('./classInference');
+const { ensureCombatEventsSchema } = require('./store');
 
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -29,6 +30,7 @@ function openDatabase(databasePath) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   const db = new DatabaseSync(databasePath);
   db.exec('PRAGMA busy_timeout = 3000');
+  ensureCombatEventsSchema(db);
   return db;
 }
 
