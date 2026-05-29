@@ -234,26 +234,33 @@ assert.equal(missingPeriodFailedCast.ability, 'Already Casting');
 
 const heal = parseCombatLine('Nexie was healed for 5 by Talisman of Regrowth I.');
 assert.equal(heal.eventType, 'healing');
-assert.equal(heal.source, null);
+assert.equal(heal.source, 'Nexie');
 assert.equal(heal.target, 'Nexie');
 assert.equal(heal.ability, 'Talisman of Regrowth I');
 assert.equal(heal.amount, 5);
 
 const noisyMantleHeal = parseCombatLine('Shadowfox was healed for 4 by Mantle of Mist Il. [');
 assert.equal(noisyMantleHeal.eventType, 'healing');
-assert.equal(noisyMantleHeal.source, null);
+assert.equal(noisyMantleHeal.source, 'Shadowfox');
+assert.equal(noisyMantleHeal.target, 'Shadowfox');
 assert.equal(noisyMantleHeal.ability, 'Mantle of Mist II');
 assert.equal(noisyMantleHeal.amount, 4);
 
 const noisyMantleHealTwo = parseCombatLine('Shadowfox was healed for 4 by Mantle of Mist II. !');
 assert.equal(noisyMantleHealTwo.eventType, 'healing');
-assert.equal(noisyMantleHealTwo.source, null);
+assert.equal(noisyMantleHealTwo.source, 'Shadowfox');
 assert.equal(noisyMantleHealTwo.ability, 'Mantle of Mist II');
 
 const hirodeHeal = parseCombatLine("Shadowfox was healed for 8 by Hirode's Flame Il.");
 assert.equal(hirodeHeal.eventType, 'healing');
-assert.equal(hirodeHeal.source, null);
+assert.equal(hirodeHeal.source, 'Shadowfox');
 assert.equal(hirodeHeal.ability, "Hirode's Flame II");
+
+const typoSelfHeal = parseCombatLine('Shadowfox was healed by 5 by Mantle of Mist II.');
+assert.equal(typoSelfHeal.eventType, 'healing');
+assert.equal(typoSelfHeal.source, 'Shadowfox');
+assert.equal(typoSelfHeal.target, 'Shadowfox');
+assert.equal(typoSelfHeal.ability, 'Mantle of Mist II');
 
 const sourcedHeal = parseCombatLine('Cleric healed Shadowfox for 42 with Flash Heal.');
 assert.equal(sourcedHeal.eventType, 'healing');

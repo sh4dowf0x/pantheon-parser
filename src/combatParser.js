@@ -147,13 +147,14 @@ function parseCombatLine(input) {
     };
   }
 
-  match = line.match(/^(.+?) was healed for (\d+) by (.+?)\.(?: \(Critical\))?$/i);
+  match = line.match(/^(.+?) was healed (?:for|by) (\d+) by (.+?)\.(?: \(Critical\))?$/i);
   if (match) {
     const ability = normalizeAbility(match[3]);
+    const target = normalizeName(match[1]);
     return {
       eventType: 'healing',
-      source: null,
-      target: normalizeName(match[1]),
+      source: target,
+      target,
       ability,
       amount: Number(match[2]),
       damageType: null,
