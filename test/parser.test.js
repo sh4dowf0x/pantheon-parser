@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { findNewLines, fingerprintLine, RecentLineCache } = require('../src/dedupe');
 const { normalizeAbility, normalizeName, parseCombatLine } = require('../src/combatParser');
-const { inferClassFromAbilities, isUnnamedMobName } = require('../src/classInference');
+const { inferClassFromAbilities, isNamedMobName, isUnnamedMobName } = require('../src/classInference');
 const { extractLogicalLines } = require('../src/ocr');
 const { ensureCombatEventsSchema, openStore } = require('../src/store');
 const { DatabaseSync } = require('node:sqlite');
@@ -180,8 +180,18 @@ assert.equal(isUnnamedMobName('brineclaw mireguard'), true);
 assert.equal(isUnnamedMobName('vinecoil snake'), true);
 assert.equal(isUnnamedMobName('Shadowfox'), false);
 assert.equal(isUnnamedMobName('Bitik'), false);
+assert.equal(isNamedMobName('Gruumsh the Elusive'), true);
+assert.equal(isNamedMobName('Hotshot Sallisah'), true);
+assert.equal(isNamedMobName('"Hotshot" Sallisah'), true);
+assert.equal(isNamedMobName('Jugo Mountain Pojacks'), true);
+assert.equal(isNamedMobName('Jugo "Mountain" Pojacks'), true);
+assert.equal(isNamedMobName('Shadowfox'), false);
 assert.deepEqual(
   inferClassFromAbilities(['Auto Attack'], { eventCount: 50, sourceName: 'brineclaw mireguard' }).className,
+  'Mob'
+);
+assert.deepEqual(
+  inferClassFromAbilities(['Auto Attack'], { eventCount: 50, sourceName: 'Gruumsh the Elusive' }).className,
   'Mob'
 );
 

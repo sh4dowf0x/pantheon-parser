@@ -112,6 +112,77 @@ const CLASS_RULES = [
   }
 ];
 
+const NAMED_MOBS = [
+  'Gruumsh the Elusive',
+  'Crestlord Ruknar',
+  'Krageeli the Ruinous',
+  'Snik the Tidemancer',
+  "Maraki'ki",
+  'Krex',
+  'sinister sproutbone',
+  'Thixar the Bonehowl',
+  'wildhive queen',
+  'Vaelris the Deadheart',
+  'Bogjaw',
+  'Kaelthar teh Withering',
+  'Kaelthar the Withering',
+  'Thragos the Rootbound',
+  'Karnak the Ironbranch',
+  'highspire hivequeen',
+  'Grimwatcher Xarok',
+  'The Wycan',
+  'Moon Witch Lysara',
+  'Razorfang',
+  'blackback widow',
+  'Ragifus',
+  'Abandoned Quarry Golem',
+  'Trapmaker Krell',
+  'masked bandit',
+  'forgotten bowman',
+  '"Hotshot" Sallisah',
+  'Nightbane Toad',
+  'Drog',
+  'Pog the Elusive',
+  'Windfeather',
+  'Keragos the Watcher',
+  'Rattlecage',
+  'spider of ill omen',
+  'Ulthiran Sacrificer',
+  'Gadai Recruiter',
+  'a jacked rabbit',
+  'Zirus the Bonewalker',
+  'Crav',
+  "Xedras Mal'thir",
+  'Heltic',
+  'Jugo "Mountain" Pojacks',
+  'grizzled greatpaw',
+  'Larcs the Weaponsmith',
+  'Elder Ironhide Boar',
+  'Asabatu',
+  'brooding skitterfang',
+  'Bitter Bone',
+  'cursed apparition',
+  'War Scout Grak-Gor',
+  'redjacket queen',
+  'Rilo the Insomniac',
+  'Gadai messenger',
+  'Moonfang',
+  'Wander Guardian',
+  'Mountain Drake Matriarch'
+];
+
+function mobNameKey(value) {
+  return String(value || '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/["]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+const NAMED_MOB_KEYS = new Set(NAMED_MOBS.map(mobNameKey));
+
 function baseAbilityName(value) {
   return normalizeAbility(value)
     .replace(/\s+(?:I|II|III|IV|V|VI|VII|VIII|IX|X)$/i, '')
@@ -139,7 +210,19 @@ function isUnnamedMobName(value) {
   return /[a-z]/.test(name) && !/[A-Z0-9]/.test(name) && /^[a-z][a-z' -]*$/.test(name);
 }
 
+function isNamedMobName(value) {
+  return NAMED_MOB_KEYS.has(mobNameKey(value));
+}
+
 function inferClassFromAbilities(abilities, options = {}) {
+  if (isNamedMobName(options.sourceName)) {
+    return {
+      className: 'Mob',
+      confidence: 1,
+      matchedAbilities: ['named mob']
+    };
+  }
+
   if (isUnnamedMobName(options.sourceName)) {
     return {
       className: 'Mob',
@@ -184,6 +267,7 @@ function inferClassFromAbilities(abilities, options = {}) {
 
 module.exports = {
   baseAbilityName,
+  isNamedMobName,
   isUnnamedMobName,
   inferClassFromAbilities
 };
