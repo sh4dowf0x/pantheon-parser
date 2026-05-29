@@ -64,6 +64,23 @@ function clampRegion(region, metadata) {
   return { x, y, width, height };
 }
 
+function clampRegionToBounds(region, bounds, metadata) {
+  const screenClamped = clampRegion(region, metadata);
+  if (!bounds) return screenClamped;
+
+  const left = Math.max(screenClamped.x, bounds.x);
+  const top = Math.max(screenClamped.y, bounds.y);
+  const right = Math.min(screenClamped.x + screenClamped.width, bounds.x + bounds.width);
+  const bottom = Math.min(screenClamped.y + screenClamped.height, bounds.y + bounds.height);
+
+  return clampRegion({
+    x: left,
+    y: top,
+    width: Math.max(1, right - left),
+    height: Math.max(1, bottom - top)
+  }, metadata);
+}
+
 async function refineToDarkBounds(image, region, metadata, autoConfig = {}) {
   if (autoConfig.refineToDarkBounds === false) {
     return { region, refined: false, reason: 'disabled' };
@@ -456,12 +473,12 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
   const auto = captureConfig.autoCombatLog || {};
   const lockRegion = auto.lockRegion !== false;
   if (lockRegion && lockedAutoCombatLog && lockedAutoCombatLog.windowWidth === windowRect.width && lockedAutoCombatLog.windowHeight === windowRect.height) {
-    const region = clampRegion({
+    const region = clampRegionToBounds({
       x: windowRect.x + lockedAutoCombatLog.relative.x,
       y: windowRect.y + lockedAutoCombatLog.relative.y,
       width: lockedAutoCombatLog.relative.width,
       height: lockedAutoCombatLog.relative.height
-    }, metadata);
+    }, windowRect, metadata);
 
     return {
       region,
@@ -486,16 +503,17 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
       height: Math.round(windowRect.height * auto.height) + padding * 2
     }, metadata);
     const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
+    const refinedRegion = clampRegionToBounds(refined.region, windowRect, metadata);
     if (lockRegion && refined.refined) {
       lockedAutoCombatLog = {
         lockedAt: new Date().toISOString(),
         windowWidth: windowRect.width,
         windowHeight: windowRect.height,
         relative: {
-          x: refined.region.x - windowRect.x,
-          y: refined.region.y - windowRect.y,
-          width: refined.region.width,
-          height: refined.region.height
+          x: refinedRegion.x - windowRect.x,
+          y: refinedRegion.y - windowRect.y,
+          width: refinedRegion.width,
+          height: refinedRegion.height
         },
         strategy: refined.strategy,
         refinement: refined
@@ -503,7 +521,7 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
     }
 
     return {
-      region: refined.region,
+      region: refinedRegion,
       detection: {
         mode: 'autoCombatLog',
         matched: true,
@@ -612,16 +630,17 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
     height: best.height + padding * 2
   }, metadata);
   const refined = await refineToDarkBounds(image, seedRegion, metadata, auto);
+  const refinedRegion = clampRegionToBounds(refined.region, windowRect, metadata);
   if (lockRegion && refined.refined) {
     lockedAutoCombatLog = {
       lockedAt: new Date().toISOString(),
       windowWidth: windowRect.width,
       windowHeight: windowRect.height,
       relative: {
-        x: refined.region.x - windowRect.x,
-        y: refined.region.y - windowRect.y,
-        width: refined.region.width,
-        height: refined.region.height
+        x: refinedRegion.x - windowRect.x,
+        y: refinedRegion.y - windowRect.y,
+        width: refinedRegion.width,
+        height: refinedRegion.height
       },
       strategy: refined.strategy,
       refinement: refined
@@ -629,7 +648,7 @@ async function detectCombatLogRegion(image, metadata, captureConfig, windowRect)
   }
 
   return {
-    region: refined.region,
+    region: refinedRegion,
     detection: {
       mode: 'autoCombatLog',
       matched: true,
