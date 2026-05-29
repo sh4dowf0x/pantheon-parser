@@ -3,6 +3,8 @@ setlocal
 
 cd /d "%~dp0"
 
+if not exist "data" mkdir "data"
+
 echo Starting Pantheon Parser...
 echo.
 echo Make sure the Pantheon combat log is visible in the lower-right

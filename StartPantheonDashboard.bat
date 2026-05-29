@@ -3,6 +3,8 @@ setlocal
 
 cd /d "%~dp0"
 
+if not exist "data" mkdir "data"
+
 echo Starting Pantheon DPS Dashboard...
 echo.
 echo Open http://localhost:3107 in your browser.
