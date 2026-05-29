@@ -47,7 +47,7 @@ function writeCaptureRegion(config, capture, observedAt) {
   });
 }
 
-function parseArgs(argv) {
+function parseArgs(argv = process.argv) {
   const args = {
     once: false,
     debug: false,
@@ -60,6 +60,7 @@ function parseArgs(argv) {
     else if (arg === '--debug') args.debug = true;
     else if (arg === '--dry-run') args.dryRun = true;
     else if (arg === '--config') args.configPath = path.resolve(argv[++i]);
+    else if (arg === '--db') args.databasePath = path.resolve(argv[++i]);
     else if (arg === '--interval') args.intervalMs = Number(argv[++i]);
     else if (arg === '--pid') args.processId = Number(argv[++i]);
   }
@@ -139,13 +140,13 @@ async function selectPantheonWindow(config, args) {
   console.log(`Using Pantheon PID ${selected.id} for this session.\n`);
 }
 
-async function run() {
-  const args = parseArgs(process.argv);
+async function runParser(options = {}) {
+  const args = options.args || parseArgs(options.argv || process.argv);
   const config = readConfig(args.configPath);
   if (args.intervalMs) config.intervalMs = args.intervalMs;
   await selectPantheonWindow(config, args);
 
-  const databasePath = path.resolve(process.cwd(), config.databasePath || 'data/pantheon-events.sqlite');
+  const databasePath = args.databasePath || path.resolve(process.cwd(), config.databasePath || 'data/pantheon-events.sqlite');
   const store = args.dryRun ? null : openStore(databasePath);
   const ocr = await createOcr(config.ocr || {});
   let previousVisibleLines = [];
@@ -160,12 +161,14 @@ async function run() {
   console.log('Press Ctrl+C to stop.');
 
   let stopping = false;
-  process.on('SIGINT', async () => {
-    stopping = true;
-    console.log('\nStopping...');
-  });
+  if (options.installSignalHandler !== false) {
+    process.on('SIGINT', async () => {
+      stopping = true;
+      console.log('\nStopping...');
+    });
+  }
 
-  while (!stopping) {
+  while (!stopping && !(options.shouldStop && options.shouldStop())) {
     const observedAt = new Date().toISOString();
     try {
       const capture = await captureRegion(config, {
@@ -269,7 +272,18 @@ async function run() {
   if (store) store.close();
 }
 
-run().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  runParser().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  parseArgs,
+  readConfig,
+  runParser,
+  selectPantheonWindow,
+  writeCaptureRegion,
+  writeJsonAtomic
+};

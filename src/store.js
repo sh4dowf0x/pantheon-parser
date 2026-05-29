@@ -59,6 +59,7 @@ function ensureCombatEventsSchema(db) {
 function openStore(databasePath) {
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   const db = new DatabaseSync(databasePath);
+  db.exec('PRAGMA busy_timeout = 3000');
   ensureCombatEventsSchema(db);
 
   const insert = db.prepare(`

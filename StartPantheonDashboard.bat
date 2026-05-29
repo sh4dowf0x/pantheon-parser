@@ -8,7 +8,8 @@ if not exist "data" mkdir "data"
 echo Starting Pantheon DPS Dashboard...
 echo.
 echo Open http://localhost:3107 in your browser.
-echo Keep StartPantheonParser.bat running to collect live combat data.
+echo Note: StartPantheonParser.bat now starts both the parser and dashboard.
+echo This launcher is only for dashboard-only troubleshooting.
 echo.
 
 for /f "usebackq tokens=*" %%A in (`powershell -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 3107 -State Listen -ErrorAction SilentlyContinue) { 'yes' }"`) do set DASHBOARD_RUNNING=%%A

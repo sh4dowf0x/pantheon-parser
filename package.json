@@ -4,7 +4,8 @@
   "description": "Experimental OCR-based combat parser for Pantheon.",
   "main": "src/index.js",
   "scripts": {
-    "start": "node --no-warnings src/index.js",
+    "start": "node --no-warnings src/app.js",
+    "parser": "node --no-warnings src/index.js",
     "dashboard": "node --no-warnings src/dashboard.js",
     "once": "node --no-warnings src/index.js --once --debug",
     "debug:capture": "node --no-warnings src/index.js --once --debug --dry-run",

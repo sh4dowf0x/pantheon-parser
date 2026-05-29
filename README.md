@@ -17,7 +17,7 @@ For a debug capture that does not write to the database:
 npm run debug:capture
 ```
 
-For live watching:
+For the normal combined app, which starts both live parsing and the dashboard:
 
 ```powershell
 npm start
@@ -29,7 +29,19 @@ Or double-click:
 StartPantheonParser.bat
 ```
 
-For the DPS dashboard:
+Then open:
+
+```text
+http://localhost:3107
+```
+
+For parser-only troubleshooting:
+
+```powershell
+npm run parser
+```
+
+For dashboard-only troubleshooting:
 
 ```powershell
 npm run dashboard
@@ -39,12 +51,6 @@ Or double-click:
 
 ```text
 StartPantheonDashboard.bat
-```
-
-Then open:
-
-```text
-http://localhost:3107
 ```
 
 The dashboard refreshes every 2 seconds and includes Damage/Healing, time range, and Players/All source filters.

@@ -11,7 +11,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 const DEFAULT_DATABASE = path.join(ROOT, 'data', 'pantheon-events.sqlite');
 
-function parseArgs(argv) {
+function parseArgs(argv = process.argv) {
   const args = {
     port: 3107,
     databasePath: DEFAULT_DATABASE
@@ -432,29 +432,52 @@ function createServer(db) {
   });
 }
 
-const args = parseArgs(process.argv);
-const db = openDatabase(args.databasePath);
-const server = createServer(db);
+function startDashboard(options = {}) {
+  const args = options.args || parseArgs(options.argv || process.argv);
+  const db = openDatabase(args.databasePath);
+  const server = createServer(db);
 
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${args.port} is already in use. The dashboard may already be running at http://localhost:${args.port}`);
-  } else {
-    console.error(error);
-  }
-  db.close();
-  process.exitCode = 1;
-});
-
-server.listen(args.port, () => {
-  console.log(`Pantheon dashboard listening at http://localhost:${args.port}`);
-  console.log(`Database: ${args.databasePath}`);
-});
-
-process.on('SIGINT', () => {
-  console.log('\nStopping dashboard...');
-  server.close(() => {
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${args.port} is already in use. The dashboard may already be running at http://localhost:${args.port}`);
+    } else {
+      console.error(error);
+    }
     db.close();
-    process.exit(0);
+    if (options.exitOnError !== false) process.exitCode = 1;
   });
-});
+
+  server.listen(args.port, () => {
+    console.log(`Pantheon dashboard listening at http://localhost:${args.port}`);
+    console.log(`Database: ${args.databasePath}`);
+  });
+
+  return {
+    args,
+    db,
+    server,
+    close(callback) {
+      server.close(() => {
+        db.close();
+        if (callback) callback();
+      });
+    }
+  };
+}
+
+if (require.main === module) {
+  const dashboard = startDashboard();
+  process.on('SIGINT', () => {
+    console.log('\nStopping dashboard...');
+    dashboard.close(() => process.exit(0));
+  });
+}
+
+module.exports = {
+  createServer,
+  getBreakdownData,
+  getDashboardData,
+  openDatabase,
+  parseArgs,
+  startDashboard
+};
