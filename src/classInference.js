@@ -44,8 +44,12 @@ const CLASS_RULES = [
   {
     className: 'Ranger',
     abilities: [
+      'Falcon Strike',
       'Howling Arrow',
-      'Swift Shot'
+      'Lash',
+      "Predator's Fury",
+      'Swift Shot',
+      'Volley of Arrows'
     ]
   },
   {

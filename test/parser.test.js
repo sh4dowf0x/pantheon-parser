@@ -157,7 +157,7 @@ assert.deepEqual(
   'Wizard'
 );
 assert.deepEqual(
-  inferClassFromAbilities(['Howling Arrow II', 'Swift Shot']).className,
+  inferClassFromAbilities(['Howling Arrow II', 'Swift Shot', 'Falcon Strike', "Predator's Fury", 'Volley of Arrows', 'Lash']).className,
   'Ranger'
 );
 assert.deepEqual(
